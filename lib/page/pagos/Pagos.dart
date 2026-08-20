@@ -1,17 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/page/pagos/componentes/NfcPayment.dart';
+import 'package:flutter_application_1/page/pagos/componentes/RegisteredCards.dart';
 import 'package:flutter_application_1/page/pagos/componentes/TopBar.dart'
     show TopBar;
 
 class Pagos extends StatelessWidget {
-  const Pagos({super.key});
+  final int idCliente;
+  const Pagos({super.key, required this.idCliente});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        TopBar(),
-        Container(
-          decoration: BoxDecoration(color: Color.fromARGB(255, 152, 152, 224)),
+        const TopBar(),
+        Expanded(
+          child: Container(
+            color: const Color.fromARGB(255, 191, 191, 194),
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                NfcPayment(idCliente: idCliente),
+                const SizedBox(height: 24),
+                RegisteredCards(idCliente: idCliente),
+              ],
+            ),
+          ),
         ),
       ],
     );

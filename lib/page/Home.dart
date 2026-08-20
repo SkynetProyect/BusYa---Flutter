@@ -25,7 +25,7 @@ class _Home extends State<Application> {
   Widget build(BuildContext context) {
     final List<Widget> pantalla = [
       Inicio(),
-      Pagos(),
+      Pagos(idCliente: 0),
       Rutas(),
       Historial(),
       Perfil(),

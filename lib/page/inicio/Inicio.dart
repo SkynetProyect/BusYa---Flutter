@@ -10,7 +10,7 @@ class Inicio extends StatelessWidget {
       children: [
         TopBar(),
         Container(
-          decoration: BoxDecoration(color: Color.fromARGB(255, 152, 152, 224)),
+          decoration: BoxDecoration(color: Color.fromARGB(255, 191, 191, 194)),
         ),
       ],
     );
