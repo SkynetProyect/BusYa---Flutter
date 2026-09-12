@@ -2,13 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
 import 'package:flutter_application_1/page/inicio/componentes/TopBar.dart';
+import 'package:flutter_application_1/service/determinePosition.dart'
+    show determinePosition;
 import 'package:flutter_application_1/service/rest/bus/BusService.dart'
     show BusService;
 import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart'
     show EmpresaService;
 import 'package:flutter_application_1/service/rest/ruta/RutaService.dart'
     show RutaService;
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart' as flutter_map;
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart' as latlong;
 
 import 'dart:async';
 
@@ -24,7 +28,7 @@ class _InicioState extends State<Inicio> {
   final EmpresaService _empresaService = EmpresaService();
   final BusService _busService = BusService();
 
-  GoogleMapController? _mapController;
+  final flutter_map.MapController _mapController = flutter_map.MapController();
 
   List<Empresa> _empresas = [];
   List<Ruta> _rutasDeEmpresa = [];
@@ -32,30 +36,70 @@ class _InicioState extends State<Inicio> {
   Empresa? _empresaSeleccionada;
   Ruta? _rutaSeleccionada;
 
-  final Set<Polyline> _polylines = {};
-  final Set<Marker> _busMarkers = {};
+  List<flutter_map.Polyline> _polylines = [];
+  List<flutter_map.Marker> _busMarkers = [];
 
   bool _loadingSelectores = true;
+  String? _selectorError;
   Timer? _busTimer;
+  bool _busRequestInFlight = false;
+  StreamSubscription<Position>? _positionSubscription;
+  latlong.LatLng? _userPosition;
+  bool _centerOnUserLocation = true;
 
   @override
   void initState() {
     super.initState();
     _cargarEmpresas();
+    _cargarUbicacion();
   }
 
   @override
   void dispose() {
     _busTimer?.cancel();
+    _positionSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _cargarUbicacion() async {
+    try {
+      final position = await determinePosition();
+      if (!mounted) return;
+      _actualizarUbicacion(position);
+      _positionSubscription = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5,
+        ),
+      ).listen(_actualizarUbicacion);
+    } catch (_) {
+      // La pantalla sigue funcionando aunque el usuario no conceda ubicación.
+    }
+  }
+
+  void _actualizarUbicacion(Position position) {
+    if (!mounted) return;
+
+    final location = latlong.LatLng(position.latitude, position.longitude);
+    setState(() => _userPosition = location);
+
+    if (_centerOnUserLocation) {
+      _centerOnUserLocation = false;
+      _mapController.move(location, 15);
+    }
   }
 
   Future<void> _cargarEmpresas() async {
     try {
       final empresas = await _empresaService.getAll();
-      setState(() => _empresas = empresas);
-    } catch (_) {
-      // el servicio ya muestra el popup
+      if (!mounted) return;
+      setState(() {
+        _empresas = empresas;
+        _selectorError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _selectorError = error.toString());
     } finally {
       if (mounted) setState(() => _loadingSelectores = false);
     }
@@ -75,8 +119,12 @@ class _InicioState extends State<Inicio> {
 
     try {
       final rutas = await _rutaService.getByEmpresaId(empresa!.id!);
+      if (!mounted) return;
       setState(() => _rutasDeEmpresa = rutas);
-    } catch (_) {}
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _selectorError = 'No se pudieron cargar las rutas');
+    }
   }
 
   Future<void> _onRutaSeleccionada(Ruta? ruta) async {
@@ -91,7 +139,9 @@ class _InicioState extends State<Inicio> {
 
     _dibujarPolyline(ruta);
     await _actualizarBuses(); // primera carga inmediata
-    _busTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+    if (!mounted || _rutaSeleccionada?.id != ruta.id) return;
+
+    _busTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       _actualizarBuses();
     });
   }
@@ -103,42 +153,43 @@ class _InicioState extends State<Inicio> {
     if (points.isEmpty) return;
 
     setState(() {
-      _polylines
-        ..clear()
-        ..add(
-          Polyline(
-            polylineId: PolylineId('ruta_${ruta.id}'),
-            points: points,
-            color: const Color(0xFF2E7D5B),
-            width: 4,
-          ),
-        );
+      _polylines = [
+        flutter_map.Polyline(
+          points: points,
+          color: const Color(0xFF2E7D5B),
+          strokeWidth: 4,
+        ),
+      ];
     });
 
     _ajustarCamara(points);
   }
 
   Future<void> _actualizarBuses() async {
-    if (_rutaSeleccionada?.id == null) return;
+    final routeId = _rutaSeleccionada?.id;
+    if (routeId == null || _busRequestInFlight) return;
 
+    _busRequestInFlight = true;
     try {
-      final buses = await _busService.getByRutaId(_rutaSeleccionada!.id!);
+      final buses = await _busService.getByRutaId(routeId);
+      if (!mounted || _rutaSeleccionada?.id != routeId) return;
 
-      final nuevosMarkers = <Marker>{};
+      final nuevosMarkers = <flutter_map.Marker>[];
       for (final bus in buses) {
         if (bus.latitudActual == null || bus.longitudActual == null) continue;
 
         nuevosMarkers.add(
-          Marker(
-            markerId: MarkerId('bus_${bus.id}'),
-            position: LatLng(bus.latitudActual!, bus.longitudActual!),
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              _hueDeOcupacion(bus.nivelOcupacion),
-            ),
-            anchor: const Offset(0.5, 0.5),
-            infoWindow: InfoWindow(
-              title: bus.placa,
-              snippet: _textoOcupacion(bus.nivelOcupacion),
+          flutter_map.Marker(
+            point: latlong.LatLng(bus.latitudActual!, bus.longitudActual!),
+            width: 44,
+            height: 44,
+            child: Tooltip(
+              message: '${bus.placa}: ${_textoOcupacion(bus.nivelOcupacion)}',
+              child: Icon(
+                Icons.directions_bus,
+                color: _colorDeOcupacion(bus.nivelOcupacion),
+                size: 30,
+              ),
             ),
           ),
         );
@@ -146,24 +197,24 @@ class _InicioState extends State<Inicio> {
 
       if (!mounted) return;
       setState(() {
-        _busMarkers
-          ..clear()
-          ..addAll(nuevosMarkers);
+        _busMarkers = nuevosMarkers;
       });
     } catch (_) {
       // si falla una actualización puntual, no interrumpimos el polling
+    } finally {
+      _busRequestInFlight = false;
     }
   }
 
-  double _hueDeOcupacion(String? nivel) {
+  Color _colorDeOcupacion(String? nivel) {
     switch (nivel) {
       case 'ROJO':
-        return BitmapDescriptor.hueRed;
+        return Colors.red;
       case 'NARANJA':
-        return BitmapDescriptor.hueOrange;
+        return Colors.orange;
       case 'VERDE':
       default:
-        return BitmapDescriptor.hueGreen;
+        return Colors.green;
     }
   }
 
@@ -180,32 +231,20 @@ class _InicioState extends State<Inicio> {
     }
   }
 
-  Future<void> _ajustarCamara(List<LatLng> points) async {
-    if (_mapController == null || points.isEmpty) return;
-
-    double minLat = points.first.latitude;
-    double maxLat = points.first.latitude;
-    double minLng = points.first.longitude;
-    double maxLng = points.first.longitude;
-
-    for (final p in points) {
-      if (p.latitude < minLat) minLat = p.latitude;
-      if (p.latitude > maxLat) maxLat = p.latitude;
-      if (p.longitude < minLng) minLng = p.longitude;
-      if (p.longitude > maxLng) maxLng = p.longitude;
-    }
-
-    final bounds = LatLngBounds(
-      southwest: LatLng(minLat, minLng),
-      northeast: LatLng(maxLat, maxLng),
-    );
+  Future<void> _ajustarCamara(List<latlong.LatLng> points) async {
+    if (points.isEmpty) return;
 
     await Future.delayed(const Duration(milliseconds: 200));
-    _mapController?.animateCamera(CameraUpdate.newLatLngBounds(bounds, 60));
+    _mapController.fitCamera(
+      flutter_map.CameraFit.bounds(
+        bounds: flutter_map.LatLngBounds.fromPoints(points),
+        padding: const EdgeInsets.all(60),
+      ),
+    );
   }
 
-  List<LatLng> _decodePolyline(String encoded) {
-    List<LatLng> points = [];
+  List<latlong.LatLng> _decodePolyline(String encoded) {
+    List<latlong.LatLng> points = [];
     int index = 0, len = encoded.length;
     int lat = 0, lng = 0;
 
@@ -229,7 +268,7 @@ class _InicioState extends State<Inicio> {
       int dlng = ((result & 1) != 0) ? ~(result >> 1) : (result >> 1);
       lng += dlng;
 
-      points.add(LatLng(lat / 1e5, lng / 1e5));
+      points.add(latlong.LatLng(lat / 1e5, lng / 1e5));
     }
     return points;
   }
@@ -242,17 +281,46 @@ class _InicioState extends State<Inicio> {
         Expanded(
           child: Stack(
             children: [
-              GoogleMap(
-                initialCameraPosition: const CameraPosition(
-                  target: LatLng(6.2442, -75.5812), // Medellín
-                  zoom: 12,
+              flutter_map.FlutterMap(
+                mapController: _mapController,
+                options: const flutter_map.MapOptions(
+                  initialCenter: latlong.LatLng(6.2442, -75.5812),
+                  initialZoom: 12,
                 ),
-                onMapCreated: (controller) => _mapController = controller,
-                polylines: _polylines,
-                markers: _busMarkers,
-                myLocationEnabled: true,
-                myLocationButtonEnabled: false,
-                zoomControlsEnabled: false,
+                children: [
+                  flutter_map.TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.flutter_application_1',
+                  ),
+                  flutter_map.PolylineLayer(polylines: _polylines),
+                  flutter_map.MarkerLayer(
+                    markers: [
+                      ..._busMarkers,
+                      if (_userPosition != null)
+                        flutter_map.Marker(
+                          point: _userPosition!,
+                          width: 28,
+                          height: 28,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 3),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black38, blurRadius: 4),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const flutter_map.RichAttributionWidget(
+                    attributions: [
+                      flutter_map.TextSourceAttribution('OpenStreetMap'),
+                    ],
+                  ),
+                ],
               ),
               Positioned(
                 top: 12,
@@ -286,13 +354,36 @@ class _InicioState extends State<Inicio> {
               padding: EdgeInsets.symmetric(vertical: 12),
               child: LinearProgressIndicator(),
             )
+          : _selectorError != null
+          ? Row(
+              children: [
+                const Expanded(
+                  child: Text('No se pudieron cargar empresas y rutas'),
+                ),
+                IconButton(
+                  tooltip: 'Reintentar',
+                  onPressed: () {
+                    setState(() {
+                      _loadingSelectores = true;
+                      _selectorError = null;
+                    });
+                    _cargarEmpresas();
+                  },
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            )
           : Row(
               children: [
                 Expanded(
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<Empresa>(
                       isExpanded: true,
-                      hint: const Text('Empresa'),
+                      hint: Text(
+                        _empresas.isEmpty
+                            ? 'Sin empresas disponibles'
+                            : 'Empresa',
+                      ),
                       value: _empresaSeleccionada,
                       items: _empresas
                           .map(
@@ -316,7 +407,13 @@ class _InicioState extends State<Inicio> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<Ruta>(
                       isExpanded: true,
-                      hint: const Text('Ruta'),
+                      hint: Text(
+                        _empresaSeleccionada == null
+                            ? 'Selecciona una empresa'
+                            : (_rutasDeEmpresa.isEmpty
+                                  ? 'Sin rutas disponibles'
+                                  : 'Ruta'),
+                      ),
                       value: _rutaSeleccionada,
                       items: _rutasDeEmpresa
                           .map(

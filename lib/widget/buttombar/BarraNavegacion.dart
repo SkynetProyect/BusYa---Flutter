@@ -29,6 +29,8 @@ class BarraNavegacion extends StatelessWidget {
       alignment: Alignment.center,
       margin: EdgeInsets.only(bottom: 30),
       child: Container(
+        width: MediaQuery.sizeOf(context).width - 24,
+        constraints: const BoxConstraints(maxWidth: 430),
         height: 50,
         decoration: BoxDecoration(
           color: const Color.fromARGB(

@@ -18,7 +18,7 @@ class IconoPago extends StatelessWidget {
       child: Container(
         height: 50,
         width: 40,
-        margin: EdgeInsets.only(left: 20, right: 20),
+        margin: EdgeInsets.symmetric(horizontal: 4),
         child: Center(
           child: Column(
             children: [

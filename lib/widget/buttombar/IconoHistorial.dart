@@ -17,8 +17,8 @@ class IconoHistorial extends StatelessWidget {
       },
       child: Container(
         height: 50,
-        width: 50,
-        margin: EdgeInsets.only(left: 20, right: 20),
+        width: 40,
+        margin: EdgeInsets.symmetric(horizontal: 4),
         child: Center(
           child: Column(
             children: [

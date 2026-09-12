@@ -89,9 +89,14 @@ class TarjetaService {
   /// Crear una nueva tarjeta
   Future<Tarjeta> create(Tarjeta tarjeta) {
     return _guard(() async {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('Debes iniciar sesión para registrar una tarjeta');
+      }
+
       final data = await supabase
           .from('tarjetas')
-          .insert(_toJson(tarjeta))
+          .insert(_toJson(tarjeta, idCliente: user.id))
           .select()
           .single();
       return _fromJson(Map<String, dynamic>.from(data));
@@ -135,10 +140,10 @@ class TarjetaService {
     );
   }
 
-  Map<String, dynamic> _toJson(Tarjeta tarjeta) {
+  Map<String, dynamic> _toJson(Tarjeta tarjeta, {String? idCliente}) {
     return {
       if (tarjeta.id != null) 'id': tarjeta.id,
-      'id_cliente': tarjeta.idCliente,
+      'id_cliente': idCliente ?? tarjeta.idCliente,
       'marca': tarjeta.marca,
       'nombre_titular': tarjeta.nombreTitular,
       'ultimos_cuatro_digitos': tarjeta.ultimosCuatroDigitos,
