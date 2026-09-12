@@ -7,7 +7,7 @@ import 'package:flutter_application_1/service/rest/ruta/RutaService.dart';
 import 'package:flutter_application_1/service/rest/tarjeta/TarjetaService.dart';
 
 class NfcPayment extends StatefulWidget {
-  final int idCliente;
+  final String idCliente;
   final void Function(Empresa empresa, Ruta ruta, Tarjeta tarjeta)? onPagar;
 
   const NfcPayment({super.key, required this.idCliente, this.onPagar});
@@ -71,11 +71,7 @@ class _NfcPaymentState extends State<NfcPayment> {
   }
 
   String _numeroEnmascarado(Tarjeta tarjeta) {
-    final numeroStr = tarjeta.numero.toString();
-    final ultimos4 = numeroStr.length >= 4
-        ? numeroStr.substring(numeroStr.length - 4)
-        : numeroStr.padLeft(4, '0');
-    return '•••• $ultimos4';
+    return '•••• ${tarjeta.ultimosCuatroDigitos}';
   }
 
   @override

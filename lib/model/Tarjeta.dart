@@ -4,22 +4,22 @@ class Tarjeta implements TarjetaInterface {
   @override
   final int? id;
   @override
-  final int idCliente;
+  final String? idCliente;
   @override
   final String marca;
   @override
-  final String nombre;
+  final String nombreTitular;
   @override
-  final int numero;
+  final String ultimosCuatroDigitos;
   @override
-  final String vencimiento;
+  final String fechaVencimiento;
 
   Tarjeta({
     required this.id,
-    required this.idCliente,
+    this.idCliente,
     required this.marca,
-    required this.nombre,
-    required this.numero,
-    required this.vencimiento,
+    required this.nombreTitular,
+    required this.ultimosCuatroDigitos,
+    required this.fechaVencimiento,
   });
 }

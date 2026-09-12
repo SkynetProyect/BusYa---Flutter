@@ -4,22 +4,25 @@ class Ruta implements RutaInterface {
   @override
   final int? id;
   @override
-  final int idEmpresa;
+  final int? idEmpresa;
   @override
   final String nombre;
   @override
-  final String encodedPolyline;
+  final double precioPasaje;
   @override
-  final int distancia;
+  final String? encodedPolyline;
   @override
-  final int duracion;
+  final int? distanciaMetros;
+  @override
+  final int? duracionSegundos;
 
   Ruta({
     this.id,
-    required this.idEmpresa,
+    this.idEmpresa,
     required this.nombre,
-    required this.encodedPolyline,
-    required this.distancia,
-    required this.duracion,
+    required this.precioPasaje,
+    this.encodedPolyline,
+    this.distanciaMetros,
+    this.duracionSegundos,
   });
 }

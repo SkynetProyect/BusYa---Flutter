@@ -5,7 +5,7 @@ import 'package:flutter_application_1/page/pagos/componentes/TopBar.dart'
     show TopBar;
 
 class Pagos extends StatelessWidget {
-  final int idCliente;
+  final String idCliente;
   const Pagos({super.key, required this.idCliente});
 
   @override

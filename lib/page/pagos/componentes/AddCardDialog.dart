@@ -6,7 +6,7 @@ import 'package:flutter_application_1/service/rest/tarjeta/TarjetaService.dart';
 /// Devuelve la Tarjeta creada si tuvo éxito, o null si se canceló/falló.
 Future<Tarjeta?> showAddCardDialog(
   BuildContext context, {
-  required int idCliente,
+  required String idCliente,
 }) {
   return showDialog<Tarjeta>(
     context: context,
@@ -16,7 +16,7 @@ Future<Tarjeta?> showAddCardDialog(
 }
 
 class AddCardDialog extends StatefulWidget {
-  final int idCliente;
+  final String idCliente;
   const AddCardDialog({super.key, required this.idCliente});
 
   @override
@@ -54,9 +54,11 @@ class _AddCardDialogState extends State<AddCardDialog> {
       id: null,
       idCliente: widget.idCliente,
       marca: _marcaController.text.trim(),
-      nombre: _nombreController.text.trim(),
-      numero: int.parse(_numeroController.text.trim()),
-      vencimiento: _vencimientoController.text.trim(),
+      nombreTitular: _nombreController.text.trim(),
+      ultimosCuatroDigitos: _numeroController.text.trim().substring(
+        _numeroController.text.trim().length - 4,
+      ),
+      fechaVencimiento: _vencimientoController.text.trim(),
     );
 
     try {
@@ -107,7 +109,7 @@ class _AddCardDialogState extends State<AddCardDialog> {
                 ),
                 validator: (v) {
                   if (v == null || v.trim().isEmpty) return 'Requerido';
-                  if (int.tryParse(v.trim()) == null) {
+                  if (int.tryParse(v.trim()) == null || v.trim().length < 4) {
                     return 'Solo números';
                   }
                   return null;

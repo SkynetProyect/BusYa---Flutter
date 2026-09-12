@@ -1,25 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/app_keys.dart';
+import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/model/Empresa.dart';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EmpresaService {
-  // URL base del backend. Ajusta según tu entorno (dev/prod).
-  static const String _baseUrl =
-      'https://api.tuapp.com'; // cambiar esta madre despues
-  static const String _endpoint = '/empresas';
   static const Duration _timeout = Duration(seconds: 8);
-
-  // Headers reutilizables (agrega Authorization aquí si usas token)
-  Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    // 'Authorization': 'Bearer $token',
-  };
-
-  Uri _uri(String path) => Uri.parse('$_baseUrl$_endpoint$path');
 
   /// Muestra un popup de error reutilizable
   void _showErrorDialog(String message) {
@@ -46,8 +33,8 @@ class EmpresaService {
     if (e is TimeoutException) {
       return 'No se pudo conectar al servidor. Verifica tu conexión e intenta de nuevo.';
     }
-    if (e is http.ClientException) {
-      return 'Error de red. Verifica tu conexión a internet.';
+    if (e is PostgrestException) {
+      return e.message;
     }
     return e.toString().replaceFirst('Exception: ', '');
   }
@@ -66,48 +53,35 @@ class EmpresaService {
   /// Obtener todas las empresas
   Future<List<Empresa>> getAll() {
     return _guard(() async {
-      final response = await http.get(_uri(''), headers: _headers);
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => _fromJson(json)).toList();
-      } else {
-        throw Exception('Error al obtener empresas: ${response.statusCode}');
-      }
+      final data = await supabase.from('empresas').select();
+      return data
+          .map((row) => _fromJson(Map<String, dynamic>.from(row)))
+          .toList();
     });
   }
 
   /// Obtener una empresa por su id
   Future<Empresa> getById(int id) {
     return _guard(() async {
-      final response = await http.get(_uri('/$id'), headers: _headers);
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return _fromJson(data);
-      } else if (response.statusCode == 404) {
-        throw Exception('Empresa no encontrada');
-      } else {
-        throw Exception('Error al obtener la empresa: ${response.statusCode}');
-      }
+      final data = await supabase
+          .from('empresas')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      if (data == null) throw Exception('Empresa no encontrada');
+      return _fromJson(Map<String, dynamic>.from(data));
     });
   }
 
   /// Crear una nueva empresa
   Future<Empresa> create(Empresa empresa) {
     return _guard(() async {
-      final response = await http.post(
-        _uri(''),
-        headers: _headers,
-        body: jsonEncode(_toJson(empresa)),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return _fromJson(data);
-      } else {
-        throw Exception('Error al crear la empresa: ${response.statusCode}');
-      }
+      final data = await supabase
+          .from('empresas')
+          .insert(_toJson(empresa))
+          .select()
+          .single();
+      return _fromJson(Map<String, dynamic>.from(data));
     });
   }
 
@@ -118,31 +92,20 @@ class EmpresaService {
         throw Exception('No se puede actualizar una empresa sin id');
       }
 
-      final response = await http.put(
-        _uri('/${empresa.id}'),
-        headers: _headers,
-        body: jsonEncode(_toJson(empresa)),
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return _fromJson(data);
-      } else {
-        throw Exception(
-          'Error al actualizar la empresa: ${response.statusCode}',
-        );
-      }
+      final data = await supabase
+          .from('empresas')
+          .update(_toJson(empresa))
+          .eq('id', empresa.id!)
+          .select()
+          .single();
+      return _fromJson(Map<String, dynamic>.from(data));
     });
   }
 
   /// Eliminar una empresa por su id
   Future<void> delete(int id) {
     return _guard(() async {
-      final response = await http.delete(_uri('/$id'), headers: _headers);
-
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Error al eliminar la empresa: ${response.statusCode}');
-      }
+      await supabase.from('empresas').delete().eq('id', id);
     });
   }
 

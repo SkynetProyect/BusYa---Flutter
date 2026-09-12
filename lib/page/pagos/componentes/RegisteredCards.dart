@@ -5,7 +5,7 @@ import 'package:flutter_application_1/page/pagos/componentes/AddCardDialog.dart'
 import 'package:flutter_application_1/service/rest/tarjeta/TarjetaService.dart';
 
 class RegisteredCards extends StatefulWidget {
-  final int idCliente;
+  final String idCliente;
 
   const RegisteredCards({super.key, required this.idCliente});
 
@@ -44,7 +44,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
       builder: (context) => AlertDialog(
         title: const Text('Eliminar tarjeta'),
         content: Text(
-          '¿Seguro que deseas eliminar la tarjeta terminada en ${tarjeta.numero.toString().padLeft(4, '0').substring(tarjeta.numero.toString().length > 4 ? tarjeta.numero.toString().length - 4 : 0)}?',
+          '¿Seguro que deseas eliminar la tarjeta terminada en ${tarjeta.ultimosCuatroDigitos}?',
         ),
         actions: [
           TextButton(
@@ -182,11 +182,7 @@ class _CardTile extends StatelessWidget {
   static const green = Color(0xFF1E8A5F);
 
   String get _numeroEnmascarado {
-    final numeroStr = tarjeta.numero.toString();
-    final ultimos4 = numeroStr.length >= 4
-        ? numeroStr.substring(numeroStr.length - 4)
-        : numeroStr.padLeft(4, '0');
-    return '•••• $ultimos4';
+    return '•••• ${tarjeta.ultimosCuatroDigitos}';
   }
 
   @override
@@ -218,7 +214,7 @@ class _CardTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  "${tarjeta.nombre} · vence ${tarjeta.vencimiento}",
+                  "${tarjeta.nombreTitular} · vence ${tarjeta.fechaVencimiento}",
                   style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
                 ),
               ],

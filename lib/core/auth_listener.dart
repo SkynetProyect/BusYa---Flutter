@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app_keys.dart';
-import '../page/home.dart';
+import '../page/Home.dart';
 import '../page/auth/login_page.dart';
 import 'supabase_client.dart';
 

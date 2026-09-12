@@ -1,17 +1,17 @@
 abstract class TarjetaInterface {
   final int? id;
-  final int idCliente;
+  final String? idCliente;
   final String marca;
-  final String nombre;
-  final int numero;
-  final String vencimiento;
+  final String nombreTitular;
+  final String ultimosCuatroDigitos;
+  final String fechaVencimiento;
 
   TarjetaInterface({
     this.id,
-    required this.idCliente,
+    this.idCliente,
     required this.marca,
-    required this.nombre,
-    required this.numero,
-    required this.vencimiento,
+    required this.nombreTitular,
+    required this.ultimosCuatroDigitos,
+    required this.fechaVencimiento,
   });
 }

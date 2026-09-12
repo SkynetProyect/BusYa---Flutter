@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/supabase_client.dart';
 
 import 'package:flutter_application_1/page/historial/Historial.dart';
 import 'package:flutter_application_1/page/inicio/Inicio.dart';
@@ -25,7 +26,7 @@ class _Home extends State<Application> {
   Widget build(BuildContext context) {
     final List<Widget> pantalla = [
       Inicio(),
-      Pagos(idCliente: 0),
+      Pagos(idCliente: supabase.auth.currentUser?.id ?? ''),
       Rutas(),
       Historial(),
       Perfil(),

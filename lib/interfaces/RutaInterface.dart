@@ -1,17 +1,19 @@
 abstract class RutaInterface {
   final int? id;
-  final int idEmpresa;
+  final int? idEmpresa;
   final String nombre;
-  final String encodedPolyline;
-  final int distancia;
-  final int duracion;
+  final double precioPasaje;
+  final String? encodedPolyline;
+  final int? distanciaMetros;
+  final int? duracionSegundos;
 
   RutaInterface({
     this.id,
-    required this.idEmpresa,
+    this.idEmpresa,
     required this.nombre,
-    required this.encodedPolyline,
-    required this.distancia,
-    required this.duracion,
+    required this.precioPasaje,
+    this.encodedPolyline,
+    this.distanciaMetros,
+    this.duracionSegundos,
   });
 }

@@ -1,25 +1,12 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/app_keys.dart';
+import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/model/Ruta.dart';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RutaService {
-  // URL base del backend. Ajusta según tu entorno (dev/prod).
-  static const String _baseUrl =
-      'https://api.tuapp.com'; // cambiar esta madre despues
-  static const String _endpoint = '/rutas';
   static const Duration _timeout = Duration(seconds: 8);
-
-  // Headers reutilizables (agrega Authorization aquí si usas token)
-  Map<String, String> get _headers => {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    // 'Authorization': 'Bearer $token',
-  };
-
-  Uri _uri(String path) => Uri.parse('$_baseUrl$_endpoint$path');
 
   /// Muestra un popup de error reutilizable
   void _showErrorDialog(String message) {
@@ -46,8 +33,8 @@ class RutaService {
     if (e is TimeoutException) {
       return 'No se pudo conectar al servidor. Verifica tu conexión e intenta de nuevo.';
     }
-    if (e is http.ClientException) {
-      return 'Error de red. Verifica tu conexión a internet.';
+    if (e is PostgrestException) {
+      return e.message;
     }
     return e.toString().replaceFirst('Exception: ', '');
   }
@@ -66,67 +53,48 @@ class RutaService {
   /// Obtener todas las rutas
   Future<List<Ruta>> getAll() {
     return _guard(() async {
-      final response = await http.get(_uri(''), headers: _headers);
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => _fromJson(json)).toList();
-      } else {
-        throw Exception('Error al obtener rutas: ${response.statusCode}');
-      }
+      final data = await supabase.from('rutas').select();
+      return data
+          .map((row) => _fromJson(Map<String, dynamic>.from(row)))
+          .toList();
     });
   }
 
   /// Obtener una ruta por su id
   Future<Ruta> getById(int id) {
     return _guard(() async {
-      final response = await http.get(_uri('/$id'), headers: _headers);
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return _fromJson(data);
-      } else if (response.statusCode == 404) {
-        throw Exception('Ruta no encontrada');
-      } else {
-        throw Exception('Error al obtener la ruta: ${response.statusCode}');
-      }
+      final data = await supabase
+          .from('rutas')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      if (data == null) throw Exception('Ruta no encontrada');
+      return _fromJson(Map<String, dynamic>.from(data));
     });
   }
 
   /// Obtener todas las rutas de una empresa específica
   Future<List<Ruta>> getByEmpresaId(int idEmpresa) {
     return _guard(() async {
-      final response = await http.get(
-        _uri('/empresa/$idEmpresa'),
-        headers: _headers,
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => _fromJson(json)).toList();
-      } else {
-        throw Exception(
-          'Error al obtener rutas de la empresa: ${response.statusCode}',
-        );
-      }
+      final data = await supabase
+          .from('rutas')
+          .select()
+          .eq('id_empresa', idEmpresa);
+      return data
+          .map((row) => _fromJson(Map<String, dynamic>.from(row)))
+          .toList();
     });
   }
 
   /// Crear una nueva ruta
   Future<Ruta> create(Ruta ruta) {
     return _guard(() async {
-      final response = await http.post(
-        _uri(''),
-        headers: _headers,
-        body: jsonEncode(_toJson(ruta)),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return _fromJson(data);
-      } else {
-        throw Exception('Error al crear la ruta: ${response.statusCode}');
-      }
+      final data = await supabase
+          .from('rutas')
+          .insert(_toJson(ruta))
+          .select()
+          .single();
+      return _fromJson(Map<String, dynamic>.from(data));
     });
   }
 
@@ -137,29 +105,20 @@ class RutaService {
         throw Exception('No se puede actualizar una ruta sin id');
       }
 
-      final response = await http.put(
-        _uri('/${ruta.id}'),
-        headers: _headers,
-        body: jsonEncode(_toJson(ruta)),
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        return _fromJson(data);
-      } else {
-        throw Exception('Error al actualizar la ruta: ${response.statusCode}');
-      }
+      final data = await supabase
+          .from('rutas')
+          .update(_toJson(ruta))
+          .eq('id', ruta.id!)
+          .select()
+          .single();
+      return _fromJson(Map<String, dynamic>.from(data));
     });
   }
 
   /// Eliminar una ruta por su id
   Future<void> delete(int id) {
     return _guard(() async {
-      final response = await http.delete(_uri('/$id'), headers: _headers);
-
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Error al eliminar la ruta: ${response.statusCode}');
-      }
+      await supabase.from('rutas').delete().eq('id', id);
     });
   }
 
@@ -168,22 +127,24 @@ class RutaService {
   Ruta _fromJson(Map<String, dynamic> json) {
     return Ruta(
       id: json['id'] as int?,
-      idEmpresa: json['idEmpresa'] as int,
+      idEmpresa: json['id_empresa'] as int?,
       nombre: json['nombre'] as String,
-      encodedPolyline: json['encodedPolyline'] as String,
-      distancia: json['distancia'] as int,
-      duracion: json['duracion'] as int,
+      precioPasaje: (json['precio_pasaje'] as num?)?.toDouble() ?? 0,
+      encodedPolyline: json['encoded_polyline'] as String?,
+      distanciaMetros: json['distancia_metros'] as int?,
+      duracionSegundos: json['duracion_segundos'] as int?,
     );
   }
 
   Map<String, dynamic> _toJson(Ruta ruta) {
     return {
       if (ruta.id != null) 'id': ruta.id,
-      'idEmpresa': ruta.idEmpresa,
+      'id_empresa': ruta.idEmpresa,
       'nombre': ruta.nombre,
-      'encodedPolyline': ruta.encodedPolyline,
-      'distancia': ruta.distancia,
-      'duracion': ruta.duracion,
+      'precio_pasaje': ruta.precioPasaje,
+      'encoded_polyline': ruta.encodedPolyline,
+      'distancia_metros': ruta.distanciaMetros,
+      'duracion_segundos': ruta.duracionSegundos,
     };
   }
 }
