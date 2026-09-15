@@ -13,8 +13,6 @@ import 'package:flutter_application_1/widget/buttombar/IconoRuta.dart'
 class BarraNavegacion extends StatelessWidget {
   final ValueChanged<int> callbackfunction;
   final int selectedIndex;
-  static const Color colorleft = Color.fromARGB(255, 59, 158, 223);
-  static const Color colorright = Color.fromARGB(255, 54, 212, 94);
 
   const BarraNavegacion({
     super.key,
@@ -25,30 +23,24 @@ class BarraNavegacion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 60,
+      height: 70,
       alignment: Alignment.center,
-      margin: EdgeInsets.only(bottom: 30),
+      margin: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
       child: Container(
-        width: MediaQuery.sizeOf(context).width - 24,
         constraints: const BoxConstraints(maxWidth: 430),
-        height: 50,
+        height: 62,
         decoration: BoxDecoration(
-          color: const Color.fromARGB(
-            255,
-            230,
-            224,
-            224,
-          ).withValues(alpha: 0.5), // semi-transparent fill
-          borderRadius: BorderRadiusGeometry.circular(100),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.6), // bright top/left edge
-            width: 1.5,
-          ),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [colorleft, colorright],
-          ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          border: Border.all(color: const Color(0xFFEBECEF), width: 1.2),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF33304E).withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+              spreadRadius: 0,
+            ),
+          ],
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,

@@ -5,31 +5,40 @@ class IconoHistorial extends StatelessWidget {
   final int selectedIndex;
 
   const IconoHistorial({
+    super.key,
     required this.selectedIndex,
     required this.callbackfunction,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        callbackfunction(3);
-      },
+    final bool isSelected = selectedIndex == 3;
+    const activeColor = Color(0xFF529471);
+    const inactiveColor = Color(0xFF9E9E9E);
+
+    return InkWell(
+      onTap: () => callbackfunction(3),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         height: 50,
-        width: 40,
-        margin: EdgeInsets.symmetric(horizontal: 4),
+        width: 50,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
         child: Center(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.history,
-                color: selectedIndex == 3 ? Colors.white : Colors.black,
+                isSelected ? Icons.history_rounded : Icons.history_outlined,
+                color: isSelected ? activeColor : inactiveColor,
+                size: 22,
               ),
+              const SizedBox(height: 2),
               Text(
                 'Historial',
                 style: TextStyle(
-                  color: selectedIndex == 3 ? Colors.white : Colors.black,
+                  color: isSelected ? activeColor : inactiveColor,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 11,
                 ),
               ),
             ],
