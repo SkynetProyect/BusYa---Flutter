@@ -4,6 +4,7 @@ import '../app_keys.dart';
 import '../page/Home.dart';
 import '../page/auth/login_page.dart';
 import 'supabase_client.dart';
+import '../page/auth/update_password_page.dart';
 
 class AuthListener {
   static void listenAuthChanges() {
@@ -12,6 +13,12 @@ class AuthListener {
       final Session? session = data.session;
 
       switch (event) {
+        case AuthChangeEvent.passwordRecovery:
+          navigatorKey.currentState?.pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const UpdatePasswordPage()),
+            (route) => false,
+          );
+          break;
         case AuthChangeEvent.signedIn:
           if (session != null) {
             navigatorKey.currentState?.pushAndRemoveUntil(

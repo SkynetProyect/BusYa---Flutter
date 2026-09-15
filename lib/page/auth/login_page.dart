@@ -6,6 +6,8 @@ import 'register_page.dart';
 import 'widgets/auth_header.dart';
 import '../../widget/custombutton/custom_button.dart';
 import '../../widget/customtextfield/custom_text_field.dart';
+import 'forgot_password_page.dart';
+import '../../core/utils/validators.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,8 +23,15 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   Future<void> _handleLogin() async {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (!Validators.isNotEmpty(email) || !Validators.isNotEmpty(password)) {
       _showSnackBar('Por favor completa todos los campos');
+      return;
+    }
+
+    if (!Validators.isValidEmail(email)) {
+      _showSnackBar('Por favor ingresa un correo electrónico válido');
       return;
     }
 
@@ -95,6 +104,28 @@ class _LoginPageState extends State<LoginPage> {
                         icon: Icons.lock_outline,
                         obscureText: true,
                       ),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            '¿Olvidaste tu contraseña?',
+                            style: TextStyle(
+                              color: Color(0xFF529471),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+
                       const SizedBox(height: 24),
                       CustomButton(
                         text: 'Ingresar',

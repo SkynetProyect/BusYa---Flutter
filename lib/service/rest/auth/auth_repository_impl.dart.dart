@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase_client.dart';
 import 'auth_repository.dart';
@@ -71,5 +72,20 @@ class AuthRepositoryImpl implements AuthRepository {
         .from('tipos_documento')
         .select('id, codigo, nombre');
     return List<Map<String, dynamic>>.from(data);
+  }
+
+  @override
+  Future<void> resetPasswordForEmail(String email) async {
+    await supabase.auth.resetPasswordForEmail(
+      email,
+      redirectTo: kIsWeb ? 'http://localhost:3000' : 'busya://reset-callback',
+    );
+  }
+
+  @override
+  Future<UserResponse> updateUserPassword(String newPassword) async {
+    return await supabase.auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
   }
 }

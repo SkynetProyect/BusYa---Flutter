@@ -23,4 +23,6 @@ abstract class AuthRepository {
   Future<void> signOut();
 
   Future<List<Map<String, dynamic>>> getTiposDocumento();
+  Future<void> resetPasswordForEmail(String email);
+  Future<UserResponse> updateUserPassword(String newPassword);
 }

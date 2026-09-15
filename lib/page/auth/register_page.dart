@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/utils/validators.dart';
 import '../../service/rest/auth/auth_repository.dart';
 import '../../service/rest/auth/auth_repository_impl.dart.dart';
 import '../../widget/custombutton/custom_button.dart';
 import '../../widget/customtextfield/custom_text_field.dart';
+import '../../widget/passwordstrengthindicator/password_strength_indicator.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -24,37 +26,85 @@ class _RegisterPageState extends State<RegisterPage> {
 
   int? _idTipoDocumento;
   bool _isLoading = false;
+  bool _obscurePassword = true;
   late Future<List<Map<String, dynamic>>> _tiposDocumentoFuture;
 
   @override
   void initState() {
     super.initState();
-    // Consumimos directamente del repositorio sin tocar supabase_client
     _tiposDocumentoFuture = _authRepository.getTiposDocumento();
+    _passCtrl.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _passCtrl.removeListener(_onPasswordChanged);
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    _nombreCtrl.dispose();
+    _apellidoCtrl.dispose();
+    _docCtrl.dispose();
+    _celularCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _handleRegister() async {
-    if (_emailCtrl.text.isEmpty ||
-        _passCtrl.text.isEmpty ||
-        _nombreCtrl.text.isEmpty ||
-        _apellidoCtrl.text.isEmpty ||
-        _docCtrl.text.isEmpty ||
-        _celularCtrl.text.isEmpty ||
+    final email = _emailCtrl.text.trim();
+    final password = _passCtrl.text.trim();
+    final nombre = _nombreCtrl.text.trim();
+    final apellido = _apellidoCtrl.text.trim();
+    final documento = _docCtrl.text.trim();
+    final celular = _celularCtrl.text.trim();
+
+    if (!Validators.isNotEmpty(nombre) ||
+        !Validators.isNotEmpty(apellido) ||
+        !Validators.isNotEmpty(documento) ||
+        !Validators.isNotEmpty(celular) ||
+        !Validators.isNotEmpty(email) ||
+        !Validators.isNotEmpty(password) ||
         _idTipoDocumento == null) {
-      _showSnackBar('Por favor completa todos los campos');
+      _showSnackBar('Por favor completa todos los campos obligatorios');
+      return;
+    }
+
+    if (!Validators.isValidDocument(documento)) {
+      _showSnackBar('El número de documento debe tener entre 6 y 10 dígitos');
+      return;
+    }
+
+    if (!Validators.isValidPhone(celular)) {
+      _showSnackBar(
+        'El celular debe ser un número válido de 10 dígitos (ej. 3001234567)',
+      );
+      return;
+    }
+
+    if (!Validators.isValidEmail(email)) {
+      _showSnackBar('Por favor ingresa un correo electrónico válido');
+      return;
+    }
+
+    if (!Validators.isValidPassword(password)) {
+      _showSnackBar(
+        'La contraseña debe tener mínimo 8 caracteres, mayúscula, minúscula, número y carácter especial',
+      );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       await _authRepository.signUp(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text.trim(),
-        numeroDocumento: _docCtrl.text.trim(),
-        primerNombre: _nombreCtrl.text.trim(),
-        primerApellido: _apellidoCtrl.text.trim(),
+        email: email,
+        password: password,
+        numeroDocumento: documento,
+        primerNombre: nombre,
+        primerApellido: apellido,
         idTipoDocumento: _idTipoDocumento!,
-        celular: _celularCtrl.text.trim(),
+        celular: celular,
       );
 
       if (mounted) {
@@ -228,8 +278,25 @@ class _RegisterPageState extends State<RegisterPage> {
                 controller: _passCtrl,
                 label: 'Contraseña',
                 icon: Icons.lock_outline,
-                obscureText: true,
+                obscureText: _obscurePassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: Colors.grey,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
               ),
+
+              // Checklist interactivo y barra de fortaleza
+              PasswordStrengthIndicator(password: _passCtrl.text),
+
               const SizedBox(height: 24),
               CustomButton(
                 text: 'Registrarse',
