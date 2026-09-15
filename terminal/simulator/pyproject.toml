@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bus-location-simulator"
+version = "0.1.0"
+description = "Simulates buses moving along Supabase routes and publishing GPS telemetry."
+requires-python = ">=3.11"
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "polyline>=2.0.0",
+    "supabase>=2.0.0",
+]
+
+[project.scripts]
+bus-simulator = "bus_simulator.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
