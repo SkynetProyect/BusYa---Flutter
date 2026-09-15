@@ -1,318 +1,292 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/model/Empresa.dart';
-import 'package:flutter_application_1/model/Ruta.dart';
-import 'package:flutter_application_1/model/Tarjeta.dart';
-import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart';
-import 'package:flutter_application_1/service/rest/ruta/RutaService.dart';
-import 'package:flutter_application_1/service/rest/tarjeta/TarjetaService.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../../model/Tarjeta.dart';
+import '../../../model/TransaccionNfc.dart';
+import '../../../service/nfc_service.dart';
+import '../../../service/rest/tarjeta/TarjetaService.dart';
+import '../../../service/rest/transaccion_nfc/TransaccionNfcService.dart';
+import '../../../widget/custombutton/custom_button.dart';
 
 class NfcPayment extends StatefulWidget {
   final String idCliente;
-  final void Function(Empresa empresa, Ruta ruta, Tarjeta tarjeta)? onPagar;
 
-  const NfcPayment({super.key, required this.idCliente, this.onPagar});
+  const NfcPayment({super.key, required this.idCliente});
 
   @override
   State<NfcPayment> createState() => _NfcPaymentState();
 }
 
 class _NfcPaymentState extends State<NfcPayment> {
-  static const green = Color(0xFF1E8A5F);
+  static const darkPurple = Color(0xFF33304E);
+  static const greenPrimary = Color(0xFF529471);
 
-  final _empresaService = EmpresaService();
-  final _rutaService = RutaService();
   final _tarjetaService = TarjetaService();
+  final _transaccionService = TransaccionNfcService();
 
-  late Future<List<Empresa>> _futureEmpresas;
-  Future<List<Ruta>>? _futureRutas;
-  Future<List<Tarjeta>>? _futureTarjetas;
-
-  Empresa? _empresaSeleccionada;
-  Ruta? _rutaSeleccionada;
+  late Future<List<Tarjeta>> _futureTarjetas;
   Tarjeta? _tarjetaSeleccionada;
+  bool _isProcessing = false;
 
   @override
   void initState() {
     super.initState();
-    _futureEmpresas = _empresaService.getAll();
     _futureTarjetas = _tarjetaService.getByClienteId(widget.idCliente);
   }
 
-  void _onEmpresaChanged(Empresa? empresa) {
-    setState(() {
-      _empresaSeleccionada = empresa;
-      _rutaSeleccionada = null;
-      _futureRutas = empresa != null
-          ? _rutaService.getByEmpresaId(empresa.id!)
-          : null;
-    });
-  }
+  void _iniciarPagoNfc() async {
+    if (_tarjetaSeleccionada == null) {
+      _mostrarSnackBar('Por favor selecciona una tarjeta para pagar');
+      return;
+    }
 
-  void _onRutaChanged(Ruta? ruta) {
-    setState(() => _rutaSeleccionada = ruta);
-  }
+    setState(() => _isProcessing = true);
+    _mostrarBottomSheetEscaneo();
 
-  void _onTarjetaChanged(Tarjeta? tarjeta) {
-    setState(() => _tarjetaSeleccionada = tarjeta);
-  }
-
-  bool get _listoParaPagar =>
-      _empresaSeleccionada != null &&
-      _rutaSeleccionada != null &&
-      _tarjetaSeleccionada != null;
-
-  void _handlePagar() {
-    if (!_listoParaPagar) return;
-    widget.onPagar?.call(
-      _empresaSeleccionada!,
-      _rutaSeleccionada!,
-      _tarjetaSeleccionada!,
+    await NfcService.startSession(
+      onSuccess: (dataNfc) async {
+        if (mounted) Navigator.pop(context); // Cierra BottomSheet
+        await _procesarCobro(dataNfc);
+      },
+      onError: (error) {
+        if (mounted) {
+          Navigator.pop(context);
+          setState(() => _isProcessing = false);
+          _mostrarSnackBar(error);
+        }
+      },
     );
   }
 
-  String _numeroEnmascarado(Tarjeta tarjeta) {
-    return '•••• ${tarjeta.ultimosCuatroDigitos}';
+  Future<void> _procesarCobro(Map<String, dynamic> dataNfc) async {
+    try {
+      // 1. Obtener coordenadas de abordaje GPS
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+      } catch (_) {}
+
+      final int idBus = dataNfc['id_bus'] ?? 1;
+      final double montoPasaje = (dataNfc['tarifa'] ?? 3200).toDouble();
+
+      // 2. Crear objeto TransaccionNfc
+      final nuevaTransaccion = TransaccionNfc(
+        idBilletera: widget.idCliente,
+        idBus: idBus,
+        monto: montoPasaje,
+        sincronizadoOffline: false,
+        latitud: position?.latitude,
+        longitud: position?.longitude,
+      );
+
+      // 3. Persistir en Supabase mediante el servicio
+      await _transaccionService.create(nuevaTransaccion);
+
+      if (mounted) {
+        _mostrarDialogoExito(montoPasaje);
+      }
+    } catch (e) {
+      if (mounted) _mostrarSnackBar('Error al registrar transacción: $e');
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // --- Selector de Empresa ---
-        FutureBuilder<List<Empresa>>(
-          future: _futureEmpresas,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return _loadingCard('Cargando empresas...');
-            }
-            if (snapshot.hasError || !snapshot.hasData) {
-              return _errorCard('No se pudieron cargar las empresas');
-            }
-            final empresas = snapshot.data!;
-            return _DropdownCard<Empresa>(
-              hint: 'Selecciona una empresa',
-              value: _empresaSeleccionada,
-              items: empresas
-                  .map((e) => DropdownMenuItem(value: e, child: Text(e.nombre)))
-                  .toList(),
-              onChanged: _onEmpresaChanged,
-            );
-          },
-        ),
-
-        const SizedBox(height: 12),
-
-        // --- Selector de Ruta (depende de Empresa) ---
-        if (_empresaSeleccionada != null)
-          FutureBuilder<List<Ruta>>(
-            future: _futureRutas,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _loadingCard('Cargando rutas...');
-              }
-              if (snapshot.hasError || !snapshot.hasData) {
-                return _errorCard('No se pudieron cargar las rutas');
-              }
-              final rutas = snapshot.data!;
-              if (rutas.isEmpty) {
-                return _errorCard('Esta empresa no tiene rutas disponibles');
-              }
-              return _DropdownCard<Ruta>(
-                hint: 'Selecciona una ruta',
-                value: _rutaSeleccionada,
-                items: rutas
-                    .map(
-                      (r) => DropdownMenuItem(value: r, child: Text(r.nombre)),
-                    )
-                    .toList(),
-                onChanged: _onRutaChanged,
-              );
-            },
-          ),
-
-        if (_empresaSeleccionada != null) const SizedBox(height: 12),
-
-        // --- Selector de Tarjeta ---
-        if (_rutaSeleccionada != null)
-          FutureBuilder<List<Tarjeta>>(
-            future: _futureTarjetas,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return _loadingCard('Cargando tarjetas...');
-              }
-              if (snapshot.hasError || !snapshot.hasData) {
-                return _errorCard('No se pudieron cargar tus tarjetas');
-              }
-              final tarjetas = snapshot.data!;
-              if (tarjetas.isEmpty) {
-                return _errorCard('No tienes tarjetas registradas');
-              }
-              return _DropdownCard<Tarjeta>(
-                hint: 'Selecciona una tarjeta',
-                value: _tarjetaSeleccionada,
-                items: tarjetas
-                    .map(
-                      (t) => DropdownMenuItem(
-                        value: t,
-                        child: Text('${t.marca} ${_numeroEnmascarado(t)}'),
-                      ),
-                    )
-                    .toList(),
-                onChanged: _onTarjetaChanged,
-              );
-            },
-          ),
-
-        if (_rutaSeleccionada != null) const SizedBox(height: 12),
-
-        // --- Tarjeta de pago NFC ---
-        if (_listoParaPagar) _buildPaymentCard(),
-      ],
-    );
-  }
-
-  Widget _buildPaymentCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+  void _mostrarBottomSheetEscaneo() {
+    showModalBottomSheet(
+      context: context,
+      isDismissible: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        children: [
-          const Icon(
-            Icons.wifi,
-            color: green,
-            size: 40,
-          ), // placeholder NFC icon
-          const SizedBox(height: 12),
-          // TODO: Ruta no tiene campo `precio` — ajusta esto según
-          // cómo calcules la tarifa (fijo, por distancia, etc.)
-          const Text(
-            '\$ 3.200',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${_tarjetaSeleccionada!.marca} ${_numeroEnmascarado(_tarjetaSeleccionada!)}',
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _handlePagar,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: green,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: const Text(
-                'Pagar con NFC',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _loadingCard(String message) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Center(
-        child: Row(
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        height: 280,
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: green),
+            const Icon(Icons.nfc_rounded, size: 64, color: greenPrimary),
+            const SizedBox(height: 16),
+            const Text(
+              'Acerque su teléfono al bus',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: darkPurple,
+              ),
             ),
-            const SizedBox(width: 10),
-            Text(message, style: const TextStyle(fontSize: 13)),
+            const SizedBox(height: 8),
+            const Text(
+              'Mantenga el teléfono cerca del sticker NFC',
+              style: TextStyle(color: Colors.black54),
+            ),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () {
+                NfcService.stopSession();
+                Navigator.pop(context);
+                setState(() => _isProcessing = false);
+              },
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _errorCard(String message) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.red.shade200),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(fontSize: 13, color: Colors.red.shade700),
+  void _mostrarDialogoExito(double monto) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Column(
+          children: [
+            Icon(Icons.check_circle, color: greenPrimary, size: 54),
+            SizedBox(height: 8),
+            Text('¡Pasaje Pagado!', style: TextStyle(color: darkPurple)),
+          ],
+        ),
+        content: Text(
+          'Se debitaron \$${monto.toStringAsFixed(0)} de tu tarjeta ${_tarjetaSeleccionada?.marca} •••• ${_tarjetaSeleccionada?.ultimosCuatroDigitos}.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Aceptar', style: TextStyle(color: greenPrimary)),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _DropdownCard<T> extends StatelessWidget {
-  final String hint;
-  final T? value;
-  final List<DropdownMenuItem<T>> items;
-  final ValueChanged<T?> onChanged;
-
-  const _DropdownCard({
-    required this.hint,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-  });
+  void _mostrarSnackBar(String msg) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: darkPurple));
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          isExpanded: true,
-          value: value,
-          hint: Text(
-            hint,
-            style: TextStyle(color: Colors.grey[600], fontSize: 14),
-          ),
-          icon: const Icon(Icons.keyboard_arrow_down),
-          items: items,
-          onChanged: onChanged,
+    return Column(
+      children: [
+        // --- Selector de Tarjeta Registrada ---
+        FutureBuilder<List<Tarjeta>>(
+          future: _futureTarjetas,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: greenPrimary),
+              );
+            }
+            if (snapshot.hasError ||
+                !snapshot.hasData ||
+                snapshot.data!.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'No tienes tarjetas registradas para realizar el pago',
+                  style: TextStyle(color: Colors.black54),
+                ),
+              );
+            }
+
+            final tarjetas = snapshot.data!;
+            _tarjetaSeleccionada ??= tarjetas.first;
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFEBECEF)),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<Tarjeta>(
+                  isExpanded: true,
+                  value: _tarjetaSeleccionada,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: greenPrimary,
+                  ),
+                  items: tarjetas.map((t) {
+                    return DropdownMenuItem(
+                      value: t,
+                      child: Text(
+                        '${t.marca} •••• ${t.ultimosCuatroDigitos}',
+                        style: const TextStyle(
+                          color: darkPurple,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) =>
+                      setState(() => _tarjetaSeleccionada = val),
+                ),
+              ),
+            );
+          },
         ),
-      ),
+
+        const SizedBox(height: 16),
+
+        // --- Tarjeta de Acción NFC ---
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFEBECEF)),
+            boxShadow: [
+              BoxShadow(
+                color: darkPurple.withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              const Icon(
+                Icons.contactless_outlined,
+                color: greenPrimary,
+                size: 54,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Pago sin contacto',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: darkPurple,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Acerca el teléfono al sticker NFC del bus para debitar tu pasaje automáticamente.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.black54, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              CustomButton(
+                text: 'Pagar con NFC',
+                isLoading: _isProcessing,
+                onPressed: _iniciarPagoNfc,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

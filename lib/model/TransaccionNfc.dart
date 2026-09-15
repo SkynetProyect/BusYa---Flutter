@@ -13,6 +13,10 @@ class TransaccionNfc implements TransaccionNfcInterface {
   final DateTime? fechaTransaccion;
   @override
   final bool? sincronizadoOffline;
+  @override
+  final double? latitud;
+  @override
+  final double? longitud;
 
   TransaccionNfc({
     this.id,
@@ -21,5 +25,7 @@ class TransaccionNfc implements TransaccionNfcInterface {
     required this.monto,
     this.fechaTransaccion,
     this.sincronizadoOffline,
+    this.latitud,
+    this.longitud,
   });
 }

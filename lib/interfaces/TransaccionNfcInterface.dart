@@ -5,6 +5,8 @@ abstract class TransaccionNfcInterface {
   final double monto;
   final DateTime? fechaTransaccion;
   final bool? sincronizadoOffline;
+  final double? latitud;
+  final double? longitud;
 
   TransaccionNfcInterface({
     this.id,
@@ -13,5 +15,7 @@ abstract class TransaccionNfcInterface {
     required this.monto,
     this.fechaTransaccion,
     this.sincronizadoOffline,
+    this.latitud,
+    this.longitud,
   });
 }
