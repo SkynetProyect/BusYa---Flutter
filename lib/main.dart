@@ -4,6 +4,10 @@ import 'app_keys.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_listener.dart';
 import 'page/auth/login_page.dart';
+import 'page/pagos/tarjetas/mis_tarjetas_screen.dart';
+
+
+
 
 Future<void> main() async {
   // para operaciones asincrónicas antes de ejecutar la aplicación
@@ -14,7 +18,7 @@ Future<void> main() async {
   runApp(const Main());
 }
 
-class Main extends StatelessWidget {
+class Main extends StatelessWidget { 
   const Main({super.key});
 
   @override
@@ -23,11 +27,12 @@ class Main extends StatelessWidget {
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: "Busya",
-      home: session != null ? const Application() : const LoginPage(),
+      // home: session != null ? const Application() : const LoginPage(),
+      home: const MisTarjetasScreen(),
       theme: ThemeData(
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+          seedColor: Colors.green,
           brightness: Brightness.light,
         ),
       ),
