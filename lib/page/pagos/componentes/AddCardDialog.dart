@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/model/Tarjeta.dart';
+import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/service/rest/tarjeta/TarjetaService.dart';
 
 /// Muestra el popup para registrar una nueva tarjeta.
@@ -50,6 +51,12 @@ class _AddCardDialogState extends State<AddCardDialog> {
 
     setState(() => _isLoading = true);
 
+    debugPrint(
+      '[CARD DEBUG] submit widget.idCliente=${widget.idCliente}, '
+      'currentUserId=${supabase.auth.currentUser?.id}, '
+      'userRole=${supabase.auth.currentUser?.role}',
+    );
+
     final nuevaTarjeta = Tarjeta(
       id: null,
       idCliente: widget.idCliente,
@@ -61,8 +68,17 @@ class _AddCardDialogState extends State<AddCardDialog> {
       fechaVencimiento: _vencimientoController.text.trim(),
     );
 
+    debugPrint(
+      '[CARD DEBUG] prepared card idCliente=${nuevaTarjeta.idCliente}, '
+      'marca=${nuevaTarjeta.marca}, last4=${nuevaTarjeta.ultimosCuatroDigitos}, '
+      'vencimiento=${nuevaTarjeta.fechaVencimiento}',
+    );
+
     try {
-      final creada = await _tarjetaService.create(nuevaTarjeta);
+      final creada = await _tarjetaService.create(
+        nuevaTarjeta,
+        idCliente: widget.idCliente,
+      );
       if (mounted) Navigator.of(context).pop(creada);
     } catch (e) {
       // TarjetaService ya muestra su propio popup de error.

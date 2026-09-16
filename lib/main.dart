@@ -4,31 +4,31 @@ import 'app_keys.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_listener.dart';
 import 'page/auth/login_page.dart';
-import 'page/pagos/tarjetas/mis_tarjetas_screen.dart';
-
-
-
 
 Future<void> main() async {
   // para operaciones asincrónicas antes de ejecutar la aplicación
   WidgetsFlutterBinding.ensureInitialized();
   //se inicia supabase
   await SupabaseConfig.init();
+  debugPrint(
+    '[AUTH DEBUG] Supabase initialized. currentUser=${supabase.auth.currentUser?.id}, '
+    'hasSession=${supabase.auth.currentSession != null}',
+  );
   AuthListener.listenAuthChanges();
   runApp(const Main());
 }
 
-class Main extends StatelessWidget { 
+class Main extends StatelessWidget {
   const Main({super.key});
 
   @override
   Widget build(BuildContext context) {
     final session = supabase.auth.currentSession;
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: "Busya",
-      // home: session != null ? const Application() : const LoginPage(),
-      home: const MisTarjetasScreen(),
+      home: session == null ? const LoginPage() : const Application(),
       theme: ThemeData(
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(

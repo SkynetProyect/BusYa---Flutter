@@ -11,6 +11,10 @@ class AuthListener {
     supabase.auth.onAuthStateChange.listen((data) {
       final AuthChangeEvent event = data.event;
       final Session? session = data.session;
+      debugPrint(
+        '[AUTH DEBUG] event=$event, sessionUserId=${session?.user.id}, '
+        'sessionRole=${session?.user.role}, hasAccessToken=${session?.accessToken.isNotEmpty}',
+      );
 
       switch (event) {
         case AuthChangeEvent.passwordRecovery:
