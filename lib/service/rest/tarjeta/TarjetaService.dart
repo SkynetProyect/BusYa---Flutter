@@ -34,8 +34,13 @@ class TarjetaService {
       return 'No se pudo conectar al servidor. Verifica tu conexión e intenta de nuevo.';
     }
     if (e is PostgrestException) {
+      debugPrint(
+        '[CARD DEBUG] PostgrestException code=${e.code}, message=${e.message}, '
+        'details=${e.details}, hint=${e.hint}',
+      );
       return e.message;
     }
+    debugPrint('[CARD DEBUG] Exception type=${e.runtimeType}, error=$e');
     return e.toString().replaceFirst('Exception: ', '');
   }
 
@@ -76,6 +81,11 @@ class TarjetaService {
   /// Obtener todas las tarjetas de un cliente específico
   Future<List<Tarjeta>> getByClienteId(String idCliente) {
     return _guard(() async {
+      debugPrint(
+        '[CARD DEBUG] loading cards idCliente=$idCliente, '
+        'currentUserId=${supabase.auth.currentUser?.id}, '
+        'userRole=${supabase.auth.currentUser?.role}',
+      );
       final data = await supabase
           .from('tarjetas')
           .select()
@@ -87,18 +97,36 @@ class TarjetaService {
   }
 
   /// Crear una nueva tarjeta
-  Future<Tarjeta> create(Tarjeta tarjeta) {
+  Future<Tarjeta> create(Tarjeta tarjeta, {required String idCliente}) {
     return _guard(() async {
       final user = supabase.auth.currentUser;
+      debugPrint(
+        '[CARD DEBUG] create start passedIdCliente=$idCliente, '
+        'tarjeta.idCliente=${tarjeta.idCliente}, '
+        'currentUserId=${user?.id}, userRole=${user?.role}, '
+        'hasSession=${supabase.auth.currentSession != null}',
+      );
       if (user == null) {
         throw Exception('Debes iniciar sesión para registrar una tarjeta');
       }
+      if (idCliente.isEmpty || idCliente != user.id) {
+        throw Exception('La sesión del usuario no está disponible');
+      }
+
+      final payload = _toJson(tarjeta, idCliente: idCliente);
+      debugPrint(
+        '[CARD DEBUG] insert tarjetas payload keys=${payload.keys.toList()}, '
+        'id_cliente=${payload['id_cliente']}, marca=${payload['marca']}, '
+        'last4=${payload['ultimos_cuatro_digitos']}, '
+        'fecha=${payload['fecha_vencimiento']}',
+      );
 
       final data = await supabase
           .from('tarjetas')
-          .insert(_toJson(tarjeta, idCliente: user.id))
+          .insert(payload)
           .select()
           .single();
+      debugPrint('[CARD DEBUG] insert succeeded returnedId=${data['id']}');
       return _fromJson(Map<String, dynamic>.from(data));
     });
   }
@@ -123,7 +151,63 @@ class TarjetaService {
   /// Eliminar una tarjeta por su id
   Future<void> delete(int id) {
     return _guard(() async {
-      await supabase.from('tarjetas').delete().eq('id', id);
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('Debes iniciar sesión para eliminar una tarjeta');
+      }
+
+      debugPrint('[CARD DEBUG] delete requested id=$id by user=${user.id}');
+
+      // 1) Verificar existencia por id (puede devolver null si RLS impide leerla)
+      final existing = await supabase
+          .from('tarjetas')
+          .select('id, id_cliente')
+          .eq('id', id)
+          .maybeSingle();
+
+      if (existing == null) {
+        debugPrint(
+          '[CARD DEBUG] pre-check: tarjeta id=$id no visible (no existe o RLS no permite SELECT)',
+        );
+        throw Exception(
+          'Tarjeta no encontrada o no tienes permiso de lectura (RLS).',
+        );
+      }
+
+      final owner = existing['id_cliente'] as String?;
+      if (owner != user.id) {
+        debugPrint(
+          '[CARD DEBUG] pre-check: tarjeta id=$id pertenece a otro usuario (owner=$owner, actual=${user.id})',
+        );
+        throw Exception(
+          'La tarjeta pertenece a otro usuario (id_cliente=$owner, actual=${user.id}).',
+        );
+      }
+
+      // 2) Borrar sin pedir representación para no depender de SELECT en RETURNING
+      await supabase
+          .from('tarjetas')
+          .delete()
+          .eq('id', id)
+          .eq('id_cliente', user.id);
+
+      // 3) Verificación posterior: ¿sigue existiendo?
+      final after = await supabase
+          .from('tarjetas')
+          .select('id')
+          .eq('id', id)
+          .maybeSingle();
+
+      if (after != null) {
+        debugPrint(
+          '[CARD DEBUG] post-check: la tarjeta id=$id aún existe tras DELETE. Probable RLS DELETE faltante.',
+        );
+        throw Exception(
+          'La eliminación no tuvo efecto (0 filas afectadas). Revisa la política DELETE en la tabla tarjetas.',
+        );
+      }
+
+      debugPrint('[CARD DEBUG] delete finished id=$id');
     });
   }
 

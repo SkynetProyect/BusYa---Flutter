@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 
+import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/model/Tarjeta.dart';
 import 'package:flutter_application_1/page/pagos/componentes/AddCardDialog.dart';
 import 'package:flutter_application_1/service/rest/tarjeta/TarjetaService.dart';
 
 class RegisteredCards extends StatefulWidget {
   final String idCliente;
+  final VoidCallback? onCardsChanged;
 
-  const RegisteredCards({super.key, required this.idCliente});
+  const RegisteredCards({
+    super.key,
+    required this.idCliente,
+    this.onCardsChanged,
+  });
 
   @override
   State<RegisteredCards> createState() => _RegisteredCardsState();
@@ -23,11 +29,43 @@ class _RegisteredCardsState extends State<RegisteredCards> {
   @override
   void initState() {
     super.initState();
-    _loadTarjetas();
+    if (widget.idCliente.isEmpty) {
+      _futureTarjetas = Future.value(const <Tarjeta>[]);
+    } else {
+      _loadTarjetas();
+    }
   }
 
   void _loadTarjetas() {
-    _futureTarjetas = _tarjetaService.getByClienteId(widget.idCliente);
+    debugPrint(
+      '[CARD DEBUG] RegisteredCards load idCliente=${widget.idCliente}, '
+      'currentUserId=${supabase.auth.currentUser?.id}, '
+      'hasSession=${supabase.auth.currentSession != null}',
+    );
+    _futureTarjetas = _tarjetaService.getByClienteId(widget.idCliente).then((
+      list,
+    ) {
+      debugPrint(
+        '[CARD DEBUG] RegisteredCards loaded '
+        '${list.length} cards: ids='
+        '${list.map((t) => t.id).toList()}',
+      );
+      return list;
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant RegisteredCards oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.idCliente == widget.idCliente) return;
+
+    setState(() {
+      if (widget.idCliente.isEmpty) {
+        _futureTarjetas = Future.value(const <Tarjeta>[]);
+      } else {
+        _loadTarjetas();
+      }
+    });
   }
 
   Future<void> _refresh() async {
@@ -38,6 +76,12 @@ class _RegisteredCardsState extends State<RegisteredCards> {
 
   Future<void> _handleDelete(Tarjeta tarjeta) async {
     if (tarjeta.id == null) return;
+
+    debugPrint(
+      '[CARD DEBUG UI] Intentando eliminar tarjeta id=${tarjeta.id}, '
+      'last4=${tarjeta.ultimosCuatroDigitos}, idClienteWidget=${widget.idCliente}, '
+      'authUser=${supabase.auth.currentUser?.id}',
+    );
 
     final confirm = await showDialog<bool>(
       context: context,
@@ -62,19 +106,35 @@ class _RegisteredCardsState extends State<RegisteredCards> {
     if (confirm != true) return;
 
     try {
+      debugPrint(
+        '[CARD DEBUG UI] Confirmado. Llamando a service.delete(${tarjeta.id})',
+      );
       await _tarjetaService.delete(tarjeta.id!);
+      debugPrint('[CARD DEBUG UI] Eliminación OK. Refrescando listas');
       _refresh();
+      // Notifica al contenedor (Pagos) para que refresque también
+      widget.onCardsChanged?.call();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Tarjeta eliminada')));
       }
     } catch (e) {
+      debugPrint('[CARD DEBUG UI] Error al eliminar: $e');
       // TarjetaService ya mostró el popup de error; no hace falta duplicar.
     }
   }
 
   Future<void> _handleAddCard() async {
+    if (widget.idCliente.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para registrar una tarjeta'),
+        ),
+      );
+      return;
+    }
+
     final creada = await showAddCardDialog(
       context,
       idCliente: widget.idCliente,
@@ -82,6 +142,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
 
     if (creada != null) {
       _refresh();
+      widget.onCardsChanged?.call();
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -179,51 +240,102 @@ class _CardTile extends StatelessWidget {
 
   const _CardTile({required this.tarjeta, required this.onDelete});
 
-  static const green = Color(0xFF1E8A5F);
-
-  String get _numeroEnmascarado {
-    return '•••• ${tarjeta.ultimosCuatroDigitos}';
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      height: 200,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: green, width: 1.2),
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1B5E20), Color(0xFF43A047)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+        ],
       ),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Icon(Icons.credit_card, color: green, size: 26),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "${tarjeta.marca} $_numeroEnmascarado",
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                tarjeta.marca.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  letterSpacing: 1.5,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  "${tarjeta.nombreTitular} · vence ${tarjeta.fechaVencimiento}",
-                  style: TextStyle(fontSize: 12.5, color: Colors.grey[600]),
-                ),
-              ],
+              ),
+              const Icon(Icons.contactless, color: Colors.white70, size: 28),
+            ],
+          ),
+          Text(
+            '•••• •••• •••• ${tarjeta.ultimosCuatroDigitos}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              letterSpacing: 2,
+              fontFamily: 'monospace',
+              fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(width: 8),
-          InkWell(
-            onTap: onDelete,
-            child: const Icon(Icons.delete_outline, color: green, size: 20),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'TITULAR',
+                      style: TextStyle(color: Colors.white60, fontSize: 10),
+                    ),
+                    Text(
+                      tarjeta.nombreTitular,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'EXP',
+                    style: TextStyle(color: Colors.white60, fontSize: 10),
+                  ),
+                  Text(
+                    tarjeta.fechaVencimiento,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: tarjeta.id == null
+                      ? Colors.redAccent.withOpacity(0.4)
+                      : Colors.redAccent,
+                ),
+                tooltip: 'Eliminar tarjeta',
+                onPressed: tarjeta.id == null ? null : onDelete,
+              ),
+            ],
           ),
         ],
       ),

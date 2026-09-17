@@ -1,9 +1,6 @@
-import 'dart:convert';
-import 'package:nfc_manager/nfc_manager.dart';
-
 class NfcService {
   static Future<bool> isNfcAvailable() async {
-    return await NfcManager.instance.isAvailable();
+    return false;
   }
 
   static Future<void> startSession({
@@ -27,7 +24,7 @@ class NfcService {
           }
 
           final message = ndef.cachedMessage ?? await ndef.read();
-          if (message.records.isEmpty) {
+          if (message == null || message.records.isEmpty) {
             onError('El tag NFC está vacío');
             await NfcManager.instance.stopSession();
             return;

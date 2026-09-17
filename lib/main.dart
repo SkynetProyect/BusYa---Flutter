@@ -10,6 +10,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   //se inicia supabase
   await SupabaseConfig.init();
+  debugPrint(
+    '[AUTH DEBUG] Supabase initialized. currentUser=${supabase.auth.currentUser?.id}, '
+    'hasSession=${supabase.auth.currentSession != null}',
+  );
   AuthListener.listenAuthChanges();
   runApp(const Main());
 }
@@ -20,14 +24,15 @@ class Main extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final session = supabase.auth.currentSession;
+
     return MaterialApp(
       navigatorKey: navigatorKey,
       title: "Busya",
-      home: session != null ? const Application() : const LoginPage(),
+      home: session == null ? const LoginPage() : const Application(),
       theme: ThemeData(
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+          seedColor: Colors.green,
           brightness: Brightness.light,
         ),
       ),
