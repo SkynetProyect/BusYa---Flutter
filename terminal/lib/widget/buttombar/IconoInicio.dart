@@ -5,6 +5,7 @@ class IconoInicio extends StatelessWidget {
   final int selectedIndex;
 
   const IconoInicio({
+    super.key,
     required this.selectedIndex,
     required this.callbackfunction,
   });

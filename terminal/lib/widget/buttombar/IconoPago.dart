@@ -5,6 +5,7 @@ class IconoPago extends StatelessWidget {
   final int selectedIndex;
 
   const IconoPago({
+    super.key,
     required this.selectedIndex,
     required this.callbackfunction,
   });

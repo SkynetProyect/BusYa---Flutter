@@ -5,6 +5,7 @@ class IconoPerfil extends StatelessWidget {
   final int selectedIndex;
 
   const IconoPerfil({
+    super.key,
     required this.selectedIndex,
     required this.callbackfunction,
   });

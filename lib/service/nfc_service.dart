@@ -27,7 +27,7 @@ class NfcService {
           }
 
           final message = ndef.cachedMessage ?? await ndef.read();
-          if (message == null || message.records.isEmpty) {
+          if (message.records.isEmpty) {
             onError('El tag NFC está vacío');
             await NfcManager.instance.stopSession();
             return;

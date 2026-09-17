@@ -35,7 +35,7 @@ class BarraNavegacion extends StatelessWidget {
           border: Border.all(color: const Color(0xFFEBECEF), width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF33304E).withOpacity(0.08),
+              color: const Color(0xFF33304E).withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 10),
               spreadRadius: 0,

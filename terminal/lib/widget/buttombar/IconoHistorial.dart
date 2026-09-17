@@ -5,6 +5,7 @@ class IconoHistorial extends StatelessWidget {
   final int selectedIndex;
 
   const IconoHistorial({
+    super.key,
     required this.selectedIndex,
     required this.callbackfunction,
   });

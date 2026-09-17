@@ -127,7 +127,7 @@ class _RutasState extends State<Rutas> {
                           child: ListView.separated(
                             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                             itemCount: _rutasFiltradas.length,
-                            separatorBuilder: (_, __) =>
+                            separatorBuilder: (_, _) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final ruta = _rutasFiltradas[index];
@@ -168,7 +168,7 @@ class _RutasState extends State<Rutas> {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -219,7 +219,7 @@ class _RutaCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),

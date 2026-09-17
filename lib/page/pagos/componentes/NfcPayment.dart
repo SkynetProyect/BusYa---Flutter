@@ -249,7 +249,7 @@ class _NfcPaymentState extends State<NfcPayment> {
             border: Border.all(color: const Color(0xFFEBECEF)),
             boxShadow: [
               BoxShadow(
-                color: darkPurple.withOpacity(0.05),
+                color: darkPurple.withValues(alpha: 0.05),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),

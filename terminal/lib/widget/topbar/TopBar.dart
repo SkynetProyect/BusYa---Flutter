@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:ui'; // <-- aquí vive ImageFilter
+
+// <-- aquí vive ImageFilter
 
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
   const TopBar({super.key});
