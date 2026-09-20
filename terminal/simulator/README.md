@@ -7,7 +7,7 @@ Simulates every bus in the Supabase `buses` table moving over its route's `encod
 3. Updates `latitud_actual`, `longitud_actual`, `nivel_ocupacion`, and `ultima_actualizacion_gps` in `buses`.
 4. Inserts a row into `telemetria_gps_logs` with `id_bus`, `coordenadas.latitud`, `coordenadas.longitud`, and `timestamp`.
 
-The Flutter models currently persist an occupancy level rather than an occupant count, so the count is kept in memory and the currently valid database level (`VERDE`) is sent to Supabase.
+The Flutter client consumes an occupancy level string as a ratio. The simulator keeps a per-bus occupant count in memory and publishes `nivel_ocupacion` as a decimal ratio (e.g., `0.50`, `0.75`, `1.00`) computed from occupants vs. capacity. Changes are smoothed to avoid abrupt jumps and trend gradually across the full range.
 
 ## Run
 
@@ -27,15 +27,34 @@ Run one local cycle without Supabase:
 python -m bus_simulator --dry-run --once --seed 42
 ```
 
-Run continuously against Supabase every 10 seconds:
+Run continuously against Supabase. You can control speed with either `--hz` or `--rate-multiplier`:
 
 ```bash
 python -m bus_simulator --interval 10
 ```
 
+Speed options:
+
+- `--hz 10` sends ~10 updates per second (effective interval ≈ 0.1s).
+- `--rate-multiplier 3.0` publishes 3× faster than `--interval`.
+- Example: `--interval 9 --rate-multiplier 3` ⇒ effective interval ≈ 3s.
+
 Useful options are `--steps 10`, `--once`, `--bus-id 3`, and `--seed 42`.
 
 Routes without a usable `encoded_polyline`, and buses whose `id_ruta` points to such a route, are reported and skipped.
+
+If your `buses.nivel_ocupacion` column has a restrictive check constraint, update it to allow ratio strings (0.00–1.00):
+
+```sql
+ALTER TABLE public.buses
+	DROP CONSTRAINT IF EXISTS buses_nivel_ocupacion_check;
+
+ALTER TABLE public.buses
+	ADD CONSTRAINT buses_nivel_ocupacion_check
+	CHECK (
+		nivel_ocupacion ~ '^(0(\\.\\d{1,4})?|1(\\.0{1,4})?)$'
+	);
+```
 
 ## Seed companies and routes
 
