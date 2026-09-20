@@ -1,0 +1,27 @@
+# VCS
+.git
+.gitignore
+
+# Gradle and build outputs
+.gradle
+build
+**/build
+
+# Logs and temp
+*.log
+**/*.log
+.tmp
+
+# OS / IDE files
+.DS_Store
+**/.DS_Store
+.idea
+*.iml
+.vscode
+
+# Node-related (not used here, but safe)
+node_modules
+
+# Docker files shouldn't be in context copies
+Dockerfile
+docker-compose.yml

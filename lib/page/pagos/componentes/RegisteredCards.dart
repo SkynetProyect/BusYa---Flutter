@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 
-import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/model/Tarjeta.dart';
 import 'package:flutter_application_1/page/pagos/componentes/AddCardDialog.dart';
 import 'package:flutter_application_1/service/rest/tarjeta/TarjetaService.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisteredCards extends StatefulWidget {
   final String idCliente;
   final VoidCallback? onCardsChanged;
+  final void Function(Tarjeta selected)? onSelectedChanged;
 
   const RegisteredCards({
     super.key,
     required this.idCliente,
     this.onCardsChanged,
+    this.onSelectedChanged,
   });
 
   @override
@@ -23,6 +25,9 @@ class _RegisteredCardsState extends State<RegisteredCards> {
   final TarjetaService _tarjetaService = TarjetaService();
 
   late Future<List<Tarjeta>> _futureTarjetas;
+  final PageController _pageController = PageController(viewportFraction: 0.85);
+  int _currentIndex = 0;
+  List<Tarjeta> _tarjetas = const [];
 
   static const green = Color(0xFF1E8A5F);
 
@@ -34,22 +39,38 @@ class _RegisteredCardsState extends State<RegisteredCards> {
     } else {
       _loadTarjetas();
     }
+
+    _pageController.addListener(() {
+      // Listener for animation; selection is handled in onPageChanged
+    });
   }
 
   void _loadTarjetas() {
-    debugPrint(
-      '[CARD DEBUG] RegisteredCards load idCliente=${widget.idCliente}, '
-      'currentUserId=${supabase.auth.currentUser?.id}, '
-      'hasSession=${supabase.auth.currentSession != null}',
-    );
     _futureTarjetas = _tarjetaService.getByClienteId(widget.idCliente).then((
       list,
-    ) {
-      debugPrint(
-        '[CARD DEBUG] RegisteredCards loaded '
-        '${list.length} cards: ids='
-        '${list.map((t) => t.id).toList()}',
+    ) async {
+      _tarjetas = list;
+      // Restaurar selección persistida
+      final prefs = await SharedPreferences.getInstance();
+      final savedId = prefs.getString('selected_card_${widget.idCliente}');
+      int initial = 0;
+      if (savedId != null) {
+        final idx = _tarjetas.indexWhere((t) => t.id?.toString() == savedId);
+        if (idx >= 0) initial = idx;
+      }
+      _currentIndex = initial.clamp(
+        0,
+        _tarjetas.isEmpty ? 0 : _tarjetas.length - 1,
       );
+      // Mover el pageController cuando las tarjetas estén listas en build.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pageController.hasClients) {
+          _pageController.jumpToPage(_currentIndex);
+        }
+        if (_tarjetas.isNotEmpty && widget.onSelectedChanged != null) {
+          widget.onSelectedChanged!(_tarjetas[_currentIndex]);
+        }
+      });
       return list;
     });
   }
@@ -79,8 +100,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
 
     debugPrint(
       '[CARD DEBUG UI] Intentando eliminar tarjeta id=${tarjeta.id}, '
-      'last4=${tarjeta.ultimosCuatroDigitos}, idClienteWidget=${widget.idCliente}, '
-      'authUser=${supabase.auth.currentUser?.id}',
+      'last4=${tarjeta.ultimosCuatroDigitos}, idClienteWidget=${widget.idCliente}',
     );
 
     final confirm = await showDialog<bool>(
@@ -156,15 +176,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Tarjetas registradas",
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
 
         FutureBuilder<List<Tarjeta>>(
           future: _futureTarjetas,
@@ -209,18 +221,71 @@ class _RegisteredCardsState extends State<RegisteredCards> {
               );
             }
 
+            // Guardar en estado y construir carrusel
+            _tarjetas = tarjetas;
             return Column(
-              children: tarjetas
-                  .map(
-                    (tarjeta) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _CardTile(
-                        tarjeta: tarjeta,
-                        onDelete: () => _handleDelete(tarjeta),
-                      ),
-                    ),
-                  )
-                  .toList(),
+              children: [
+                SizedBox(
+                  height: 220,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    itemCount: _tarjetas.length,
+                    onPageChanged: (i) async {
+                      _currentIndex = i;
+                      final selected = _tarjetas[i];
+                      if (widget.onSelectedChanged != null) {
+                        widget.onSelectedChanged!(selected);
+                      }
+                      // Persistir selección
+                      final prefs = await SharedPreferences.getInstance();
+                      if (selected.id != null) {
+                        await prefs.setString(
+                          'selected_card_${widget.idCliente}',
+                          selected.id.toString(),
+                        );
+                      }
+                      setState(() {});
+                    },
+                    itemBuilder: (context, index) {
+                      return AnimatedBuilder(
+                        animation: _pageController,
+                        builder: (context, child) {
+                          double scale = 1.0;
+                          double opacity = 1.0;
+                          if (_pageController.position.haveDimensions) {
+                            final page =
+                                _pageController.page ??
+                                _currentIndex.toDouble();
+                            final diff = (page - index).abs().clamp(0.0, 1.0);
+                            scale = 1.0 - (diff * 0.06);
+                            opacity = 1.0 - (diff * 0.25);
+                          }
+                          return Center(
+                            child: Opacity(
+                              opacity: opacity,
+                              child: Transform.scale(
+                                scale: scale,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 4,
+                                  ),
+                                  child: _CardTile(
+                                    tarjeta: _tarjetas[index],
+                                    onDelete: () =>
+                                        _handleDelete(_tarjetas[index]),
+                                    selected: index == _currentIndex,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -232,30 +297,49 @@ class _RegisteredCardsState extends State<RegisteredCards> {
       ],
     );
   }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 }
 
 class _CardTile extends StatelessWidget {
   final Tarjeta tarjeta;
   final VoidCallback onDelete;
+  final bool selected;
 
-  const _CardTile({required this.tarjeta, required this.onDelete});
+  const _CardTile({
+    required this.tarjeta,
+    required this.onDelete,
+    this.selected = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final colors = _brandGradientFor(tarjeta.marca);
     return Container(
       width: double.infinity,
       height: 200,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1B5E20), Color(0xFF43A047)],
+        gradient: LinearGradient(
+          colors: colors,
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
-          BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black26.withOpacity(selected ? 0.35 : 0.15),
+            blurRadius: selected ? 14 : 6,
+            offset: const Offset(0, 4),
+          ),
         ],
+        border: selected
+            ? Border.all(color: Colors.white.withOpacity(0.8), width: 1.2)
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,6 +425,24 @@ class _CardTile extends StatelessWidget {
       ),
     );
   }
+}
+
+List<Color> _brandGradientFor(String marca) {
+  final m = marca.trim().toUpperCase();
+  if (m.contains('VISA')) {
+    // Blue marine
+    return const [Color(0xFF0A3D91), Color(0xFF1E5AB6)];
+  }
+  if (m.contains('AMEX') || m.contains('AMERICAN')) {
+    // Light green for Amex
+    return const [Color(0xFF66BB6A), Color(0xFF9CCC65)];
+  }
+  if (m.contains('MASTER')) {
+    // Dark opaque yellow for Mastercard
+    return const [Color(0xFFF9A825), Color(0xFFFBC02D)];
+  }
+  // Default green theme
+  return const [Color(0xFF1B5E20), Color(0xFF43A047)];
 }
 
 // Botón con borde punteado

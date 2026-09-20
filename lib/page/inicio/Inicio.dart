@@ -13,6 +13,9 @@ import 'package:flutter_application_1/service/rest/ruta/RutaService.dart'
 import 'package:flutter_map/flutter_map.dart' as flutter_map;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' as latlong;
+import 'package:flutter_application_1/model/Bus.dart' show Bus;
+import 'package:flutter_application_1/page/inicio/componentes/BusInfoSheet.dart'
+    show BusInfoSheet;
 
 import 'dart:async';
 
@@ -137,11 +140,15 @@ class _InicioState extends State<Inicio> {
 
     if (ruta == null) return;
 
+    debugPrint(
+      '[ROUTE DEBUG] selected route -> id=${ruta.id}, idEmpresa=${ruta.idEmpresa}, nombre=${ruta.nombre}, precio=${ruta.precioPasaje}, polylineLength=${ruta.encodedPolyline?.length ?? 0}',
+    );
+
     _dibujarPolyline(ruta);
     await _actualizarBuses(); // primera carga inmediata
     if (!mounted || _rutaSeleccionada?.id != ruta.id) return;
 
-    _busTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _busTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _actualizarBuses();
     });
   }
@@ -172,6 +179,9 @@ class _InicioState extends State<Inicio> {
     _busRequestInFlight = true;
     try {
       final buses = await _busService.getByRutaId(routeId);
+      debugPrint(
+        '[ROUTE DEBUG] buses from DB for routeId=$routeId -> ${buses.map((bus) => {'id': bus.id, 'placa': bus.placa, 'ocupacion': bus.nivelOcupacion, 'lat': bus.latitudActual, 'lng': bus.longitudActual}).toList()}',
+      );
       if (!mounted || _rutaSeleccionada?.id != routeId) return;
 
       final nuevosMarkers = <flutter_map.Marker>[];
@@ -183,12 +193,16 @@ class _InicioState extends State<Inicio> {
             point: latlong.LatLng(bus.latitudActual!, bus.longitudActual!),
             width: 44,
             height: 44,
-            child: Tooltip(
-              message: '${bus.placa}: ${_textoOcupacion(bus.nivelOcupacion)}',
-              child: Icon(
-                Icons.directions_bus,
-                color: _colorDeOcupacion(bus.nivelOcupacion),
-                size: 30,
+            child: GestureDetector(
+              onTap: () => _showBusInfo(bus),
+              child: Tooltip(
+                message:
+                    '${bus.placa}: ${_textoPorcentaje(bus.nivelOcupacion)}',
+                child: Icon(
+                  Icons.directions_bus,
+                  color: _colorDeOcupacion(bus.nivelOcupacion),
+                  size: 30,
+                ),
               ),
             ),
           ),
@@ -206,8 +220,53 @@ class _InicioState extends State<Inicio> {
     }
   }
 
+  void _showBusInfo(Bus bus) {
+    if (!mounted) return;
+    final color = _colorDeOcupacion(bus.nivelOcupacion);
+    final ocupacion = _textoPorcentaje(bus.nivelOcupacion);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => BusInfoSheet(
+        bus: bus,
+        markerColor: color,
+        ocupacionTexto: ocupacion,
+        rutaNombre: _rutaSeleccionada?.nombre,
+      ),
+    );
+  }
+
+  String _textoPorcentaje(String? nivel) {
+    final parsed = _parseOccupancyRatio(nivel);
+    if (parsed != null) {
+      if (parsed > 0.8) return 'Lleno';
+      if (parsed > 0.6) return 'Moderado';
+      return 'Vacío';
+    }
+
+    switch (nivel?.toUpperCase()) {
+      case 'ROJO':
+        return 'Lleno';
+      case 'NARANJA':
+        return 'Moderado';
+      case 'VERDE':
+      default:
+        return 'Vacío';
+    }
+  }
+
   Color _colorDeOcupacion(String? nivel) {
-    switch (nivel) {
+    final parsed = _parseOccupancyRatio(nivel);
+    if (parsed != null) {
+      if (parsed > 0.8) return Colors.red;
+      if (parsed > 0.6) return Colors.orange;
+      return Colors.green;
+    }
+
+    switch (nivel?.toUpperCase()) {
       case 'ROJO':
         return Colors.red;
       case 'NARANJA':
@@ -218,17 +277,28 @@ class _InicioState extends State<Inicio> {
     }
   }
 
-  String _textoOcupacion(String? nivel) {
-    switch (nivel) {
-      case 'ROJO':
-        return 'Ocupación alta';
-      case 'NARANJA':
-        return 'Ocupación media';
-      case 'VERDE':
-        return 'Ocupación baja';
-      default:
-        return 'Sin datos de ocupación';
+  // Intenta extraer un ratio [0..1] a partir de una cadena como
+  // "50%", "0.5", "75 %", etc. Devuelve null si no es interpretable.
+  double? _parseOccupancyRatio(String? raw) {
+    if (raw == null) return null;
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+
+    // Si contiene un número, extraerlo
+    final numberMatch = RegExp(r"([0-9]+(?:[.,][0-9]+)?)").firstMatch(s);
+    if (numberMatch == null) return null;
+    final numStr = numberMatch.group(1)!.replaceAll(',', '.');
+    final value = double.tryParse(numStr);
+    if (value == null) return null;
+
+    // Si hay un porcentaje explícito, interpretarlo como 0..100
+    if (s.contains('%')) {
+      return (value.clamp(0, 100)) / 100.0;
     }
+
+    // Sin %, si el valor está en 0..1, tómalo como ratio; si > 1, asume porcentaje 0..100
+    if (value <= 1.0) return value.clamp(0.0, 1.0);
+    return (value.clamp(0.0, 100.0)) / 100.0;
   }
 
   Future<void> _ajustarCamara(List<latlong.LatLng> points) async {
