@@ -1,9 +1,13 @@
+import 'package:audioplayers/audioplayers.dart' show AudioPlayer, AssetSource;
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
 import 'package:flutter_application_1/page/inicio/componentes/TopBar.dart';
 import 'package:flutter_application_1/service/determinePosition.dart'
     show determinePosition;
+import 'package:flutter_application_1/service/notification_service.dart'
+    show NotificationService;
+
 import 'package:flutter_application_1/service/rest/bus/BusService.dart'
     show BusService;
 import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart'
@@ -26,7 +30,7 @@ class Inicio extends StatefulWidget {
   State<Inicio> createState() => _InicioState();
 }
 
-class _InicioState extends State<Inicio> {
+class _InicioState extends State<Inicio> with WidgetsBindingObserver {
   final RutaService _rutaService = RutaService();
   final EmpresaService _empresaService = EmpresaService();
   final BusService _busService = BusService();
@@ -50,18 +54,63 @@ class _InicioState extends State<Inicio> {
   latlong.LatLng? _userPosition;
   bool _centerOnUserLocation = true;
 
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final Set<int> _busesAlertados =
+      {}; // ids de buses ya alertados en este acercamiento
+  static const double _distanciaAlertaMetros = 1000; // ajusta según necesites
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cargarEmpresas();
     _cargarUbicacion();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _busTimer?.cancel();
     _positionSubscription?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        _busTimer?.cancel();
+        _busTimer = null;
+        _positionSubscription?.pause();
+        break;
+      case AppLifecycleState.resumed:
+        _positionSubscription?.resume();
+        if (_rutaSeleccionada != null && _busTimer == null) {
+          _actualizarBuses(); // refresca inmediatamente al volver
+          _busTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+            _actualizarBuses();
+          });
+        }
+        break;
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  double _distanciaMetros(latlong.LatLng a, latlong.LatLng b) {
+    const distance = latlong.Distance();
+    return distance.as(latlong.LengthUnit.Meter, a, b);
+  }
+
+  Future<void> _reproducirAlerta() async {
+    try {
+      await _audioPlayer.play(AssetSource('sounds/bus_alert.mp3'));
+    } catch (_) {
+      // si falla el audio no debe romper la app
+    }
   }
 
   Future<void> _cargarUbicacion() async {
@@ -69,12 +118,20 @@ class _InicioState extends State<Inicio> {
       final position = await determinePosition();
       if (!mounted) return;
       _actualizarUbicacion(position);
-      _positionSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5,
-        ),
-      ).listen(_actualizarUbicacion);
+      _positionSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5,
+            ),
+          ).listen(
+            _actualizarUbicacion,
+            onError: (error) {
+              debugPrint('[LOCATION DEBUG] stream error: $error');
+              // no relanzamos, simplemente lo ignoramos para no romper la UI
+            },
+            cancelOnError: false,
+          );
     } catch (_) {
       // La pantalla sigue funcionando aunque el usuario no conceda ubicación.
     }
@@ -173,24 +230,56 @@ class _InicioState extends State<Inicio> {
   }
 
   Future<void> _actualizarBuses() async {
+    if (!mounted) return;
     final routeId = _rutaSeleccionada?.id;
     if (routeId == null || _busRequestInFlight) return;
 
     _busRequestInFlight = true;
     try {
       final buses = await _busService.getByRutaId(routeId);
-      debugPrint(
-        '[ROUTE DEBUG] buses from DB for routeId=$routeId -> ${buses.map((bus) => {'id': bus.id, 'placa': bus.placa, 'ocupacion': bus.nivelOcupacion, 'lat': bus.latitudActual, 'lng': bus.longitudActual}).toList()}',
-      );
       if (!mounted || _rutaSeleccionada?.id != routeId) return;
 
       final nuevosMarkers = <flutter_map.Marker>[];
+      final busesActualesIds = <int>{};
+
       for (final bus in buses) {
         if (bus.latitudActual == null || bus.longitudActual == null) continue;
 
+        final busPos = latlong.LatLng(bus.latitudActual!, bus.longitudActual!);
+        if (bus.id != null) busesActualesIds.add(bus.id!);
+        // --- Alerta de proximidad ---
+        if (bus.id != null && _userPosition != null) {
+          final distancia = _distanciaMetros(_userPosition!, busPos);
+          final yaAlertado = _busesAlertados.contains(bus.id);
+
+          if (distancia <= _distanciaAlertaMetros && !yaAlertado) {
+            _busesAlertados.add(bus.id!);
+            _reproducirAlerta();
+
+            NotificationService().mostrarNotificacion(
+              id: bus.id!,
+              titulo: 'Bus cerca de ti',
+              cuerpo:
+                  'El bus ${bus.placa} está a menos de ${_distanciaAlertaMetros.toInt()} metros',
+            );
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('El bus ${bus.placa} está cerca de ti'),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } else if (distancia > _distanciaAlertaMetros && yaAlertado) {
+            // si se aleja de nuevo, permite re-alertar en un futuro acercamiento
+            _busesAlertados.remove(bus.id);
+          }
+        }
+
         nuevosMarkers.add(
           flutter_map.Marker(
-            point: latlong.LatLng(bus.latitudActual!, bus.longitudActual!),
+            point: busPos,
             width: 44,
             height: 44,
             child: GestureDetector(
@@ -208,6 +297,9 @@ class _InicioState extends State<Inicio> {
           ),
         );
       }
+
+      // limpia alertas de buses que ya no están en la ruta
+      _busesAlertados.removeWhere((id) => !busesActualesIds.contains(id));
 
       if (!mounted) return;
       setState(() {
