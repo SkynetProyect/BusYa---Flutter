@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/model/Bus.dart' show Bus;
 
+import 'dart:math';
+
 class BusInfoSheet extends StatelessWidget {
   final Bus bus;
   final Color markerColor;
@@ -15,8 +17,17 @@ class BusInfoSheet extends StatelessWidget {
     this.rutaNombre,
   });
 
+  // Determinístico: mismo bus.id -> misma respuesta siempre.
+  bool get _tieneAccesoSillaRuedas {
+    final seed = bus.id ?? bus.placa.hashCode;
+    final rnd = Random(seed);
+    return rnd.nextBool();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final accesible = _tieneAccesoSillaRuedas;
+
     return SafeArea(
       top: false,
       child: Padding(
@@ -66,6 +77,34 @@ class BusInfoSheet extends StatelessWidget {
             const SizedBox(height: 8),
             _infoRow(context, 'Ocupación', ocupacionTexto),
             _infoRow(context, 'Capacidad', '${bus.capacidadMaxima} pasajeros'),
+            Row(
+              children: [
+                SizedBox(
+                  width: 120,
+                  child: Text(
+                    'Silla de ruedas',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  accesible ? Icons.accessible : Icons.not_accessible,
+                  size: 18,
+                  color: accesible ? Colors.green : Colors.red,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    accesible
+                        ? 'Tiene acceso para sillas de ruedas'
+                        : 'No tiene acceso para sillas de ruedas',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ],
+            ),
             if (bus.nivelOcupacion != null)
               _infoRow(context, 'Nivel (crudo)', bus.nivelOcupacion!),
             if (bus.ultimaActualizacionGps != null)
@@ -105,7 +144,6 @@ class BusInfoSheet extends StatelessWidget {
   }
 
   String _fmtDate(DateTime dt) {
-    // Simple ISO-like local formatting (no intl to keep dependencies minimal)
     final local = dt.toLocal();
     final y = local.year.toString().padLeft(4, '0');
     final m = local.month.toString().padLeft(2, '0');
