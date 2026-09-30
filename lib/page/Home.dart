@@ -10,6 +10,7 @@ import 'package:flutter_application_1/page/pagos/Pagos.dart';
 import 'package:flutter_application_1/page/perfil/Perfil.dart';
 import 'package:flutter_application_1/page/rutas/Rutas.dart';
 import 'package:flutter_application_1/widget/buttombar/BarraNavegacion.dart';
+import 'package:flutter_application_1/page/puntos/puntos_eco_screen.dart';
 
 class Application extends StatefulWidget {
   const Application({super.key});
@@ -57,8 +58,26 @@ class _Home extends State<Application> {
     ];
 
     return Scaffold(
-      backgroundColor: Color.fromARGB(248, 179, 174, 174),
-      //appBar: TopBar(),
+      backgroundColor: const Color.fromARGB(248, 179, 174, 174),
+      // Botón flotante para acceder directamente a Puntos Eco
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 75.0),
+        child: FloatingActionButton.extended(
+          heroTag: 'btnPuntosEco',
+          backgroundColor: const Color(0xFF1B5E20),
+          icon: const Icon(Icons.eco, color: Colors.lightGreenAccent),
+          label: const Text(
+            'Puntos Eco',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PuntosEcoScreen()),
+            );
+          },
+        ),
+      ),
       body: Stack(
         alignment: Alignment.bottomCenter,
         children: [
