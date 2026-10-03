@@ -8,6 +8,10 @@ class TransaccionNfc implements TransaccionNfcInterface {
   @override
   final int? idBus;
   @override
+  final double? latitud;
+  @override
+  final double? longitud;
+  @override
   final double monto;
   @override
   final DateTime? fechaTransaccion;
@@ -18,6 +22,8 @@ class TransaccionNfc implements TransaccionNfcInterface {
     this.id,
     this.idBilletera,
     this.idBus,
+    this.latitud,
+    this.longitud,
     required this.monto,
     this.fechaTransaccion,
     this.sincronizadoOffline,
