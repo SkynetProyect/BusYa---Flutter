@@ -18,6 +18,9 @@ dependencies:
   google_fonts: ^8.1.0
   flutter_dotenv: ^6.0.1
   supabase_flutter: ^2.8.0
+  nfc_manager: ^4.1.1
+  nfc_manager_ndef: ^1.1.0
+  http: ^1.2.0
 
 
 dev_dependencies:

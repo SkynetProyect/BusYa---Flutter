@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../model/Tarjeta.dart';
-import '../../../model/TransaccionNfc.dart';
+import '../../../model/PagoNfcResult.dart';
 import '../../../service/nfc_service.dart';
 import '../../../service/rest/tarjeta/TarjetaService.dart';
-import '../../../service/rest/transaccion_nfc/TransaccionNfcService.dart';
 import '../../../widget/custombutton/custom_button.dart';
+import '../../../service/PaymentProcessorService.dart';
 
 class NfcPayment extends StatefulWidget {
   final String idCliente;
@@ -21,7 +21,7 @@ class _NfcPaymentState extends State<NfcPayment> {
   static const greenPrimary = Color(0xFF529471);
 
   final _tarjetaService = TarjetaService();
-  final _transaccionService = TransaccionNfcService();
+  final _paymentService = PaymentProcessorService();
 
   late Future<List<Tarjeta>> _futureTarjetas;
   Tarjeta? _tarjetaSeleccionada;
@@ -59,35 +59,41 @@ class _NfcPaymentState extends State<NfcPayment> {
 
   Future<void> _procesarCobro(Map<String, dynamic> dataNfc) async {
     try {
-      // 1. Obtener coordenadas de abordaje GPS
       Position? position;
       try {
         position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high,
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ),
         );
       } catch (_) {}
 
-      final int idBus = dataNfc['id_bus'] ?? 1;
-      final double montoPasaje = (dataNfc['tarifa'] ?? 3200).toDouble();
-
-      // 2. Crear objeto TransaccionNfc
-      final nuevaTransaccion = TransaccionNfc(
-        idBilletera: widget.idCliente,
-        idBus: idBus,
-        monto: montoPasaje,
-        sincronizadoOffline: false,
+      final resultado = await _paymentService.procesarPagoNfc(
+        dataNfc: dataNfc,
+        tarjetaSeleccionada: _tarjetaSeleccionada!,
+        idCliente: widget.idCliente,
         latitud: position?.latitude,
         longitud: position?.longitude,
       );
 
-      // 3. Persistir en Supabase mediante el servicio
-      await _transaccionService.create(nuevaTransaccion);
+      if (!mounted) return;
 
-      if (mounted) {
-        _mostrarDialogoExito(montoPasaje);
+      final double montoPasaje = (dataNfc['tarifa'] ?? 3207).toDouble();
+
+      switch (resultado.status) {
+        case PagoNfcStatus.success:
+          _mostrarDialogoExito(montoPasaje, esEmergencia: false);
+          break;
+        case PagoNfcStatus.emergencySuccess:
+          _mostrarDialogoExito(montoPasaje, esEmergencia: true);
+          break;
+        case PagoNfcStatus.rejected:
+        case PagoNfcStatus.error:
+          _mostrarSnackBar(resultado.message);
+          break;
       }
     } catch (e) {
-      if (mounted) _mostrarSnackBar('Error al registrar transacción: $e');
+      if (mounted) _mostrarSnackBar('Error al procesar el pago: $e');
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
@@ -139,20 +145,29 @@ class _NfcPaymentState extends State<NfcPayment> {
     );
   }
 
-  void _mostrarDialogoExito(double monto) {
+  void _mostrarDialogoExito(double monto, {required bool esEmergencia}) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Column(
+        title: Column(
           children: [
-            Icon(Icons.check_circle, color: greenPrimary, size: 54),
-            SizedBox(height: 8),
-            Text('¡Pasaje Pagado!', style: TextStyle(color: darkPurple)),
+            Icon(
+              esEmergencia ? Icons.emergency : Icons.check_circle,
+              color: greenPrimary,
+              size: 54,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              esEmergencia ? '¡Pasaje de emergencia usado!' : '¡Pasaje Pagado!',
+              style: const TextStyle(color: darkPurple),
+            ),
           ],
         ),
         content: Text(
-          'Se debitaron \$${monto.toStringAsFixed(0)} de tu tarjeta ${_tarjetaSeleccionada?.marca} •••• ${_tarjetaSeleccionada?.ultimosCuatroDigitos}.',
+          esEmergencia
+              ? 'No tenías saldo, así que se usó tu único pasaje de emergencia disponible por \$${monto.toStringAsFixed(0)}.'
+              : 'Se debitaron \$${monto.toStringAsFixed(0)} de tu tarjeta ${_tarjetaSeleccionada?.marca} •••• ${_tarjetaSeleccionada?.ultimosCuatroDigitos}.',
         ),
         actions: [
           TextButton(
@@ -174,7 +189,6 @@ class _NfcPaymentState extends State<NfcPayment> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // --- Selector de Tarjeta Registrada ---
         FutureBuilder<List<Tarjeta>>(
           future: _futureTarjetas,
           builder: (context, snapshot) {
@@ -236,10 +250,7 @@ class _NfcPaymentState extends State<NfcPayment> {
             );
           },
         ),
-
         const SizedBox(height: 16),
-
-        // --- Tarjeta de Acción NFC ---
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(24),
