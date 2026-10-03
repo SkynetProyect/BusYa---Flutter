@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_1/model/Tarjeta.dart';
 import 'package:flutter_application_1/core/supabase_client.dart';
@@ -26,7 +27,7 @@ class AddCardDialog extends StatefulWidget {
 }
 
 class _AddCardDialogState extends State<AddCardDialog> {
-  static const green = Color(0xFF1E8A5F);
+  static const green = AppColors.primary;
 
   final _formKey = GlobalKey<FormState>();
   final _tarjetaService = TarjetaService();
@@ -67,8 +68,9 @@ class _AddCardDialogState extends State<AddCardDialog> {
     final digits = raw.replaceAll(RegExp(r'\D'), '');
     if (digits.isEmpty) return '';
     // American Express: 34 or 37 (length typically 15)
-    if (digits.startsWith('34') || digits.startsWith('37'))
+    if (digits.startsWith('34') || digits.startsWith('37')) {
       return 'American Express';
+    }
     // Mastercard: 51-55 or 2221-2720
     if (digits.length >= 2) {
       final first2 = int.tryParse(digits.substring(0, 2));
@@ -76,12 +78,32 @@ class _AddCardDialogState extends State<AddCardDialog> {
     }
     if (digits.length >= 4) {
       final first4 = int.tryParse(digits.substring(0, 4));
-      if (first4 != null && first4 >= 2221 && first4 <= 2720)
+      if (first4 != null && first4 >= 2221 && first4 <= 2720) {
         return 'Mastercard';
+      }
     }
     // Visa: starts with 4 (length typically 13, 16, or 19)
     if (digits.startsWith('4')) return 'Visa';
     return 'Desconocida';
+  }
+
+  /// Valida MM/AA: formato, mes válido, no vencida y no absurdamente lejana.
+  String? _validateExpiry(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Requerido';
+    final text = v.trim();
+    if (!RegExp(r'^(0[1-9]|1[0-2])\/\d{2}$').hasMatch(text)) {
+      return 'Formato MM/AA';
+    }
+    final mm = int.parse(text.substring(0, 2));
+    final yy = 2000 + int.parse(text.substring(3, 5));
+
+    final now = DateTime.now();
+    // Una tarjeta es válida hasta el final del mes indicado
+    if (yy < now.year || (yy == now.year && mm < now.month)) {
+      return 'Tarjeta vencida';
+    }
+    if (yy > now.year + 20) return 'Año inválido';
+    return null;
   }
 
   Future<void> _handleSubmit() async {
@@ -177,7 +199,7 @@ class _AddCardDialogState extends State<AddCardDialog> {
                       final marca = _detectMarca(value.text);
                       return Text(
                         'Marca detectada: ${marca.isEmpty ? '- -' : marca}',
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
@@ -201,17 +223,7 @@ class _AddCardDialogState extends State<AddCardDialog> {
                   hintText: '09/28',
                   counterText: '',
                 ),
-                validator: (v) {
-                  if (v == null || v.trim().isEmpty) return 'Requerido';
-                  final text = v.trim();
-                  final regex = RegExp(r'^(0[1-9]|1[0-2])\/\d{2}$');
-                  if (!regex.hasMatch(text)) return 'Formato MM/AA';
-                  final mm = int.parse(text.substring(0, 2));
-                  final yy = int.parse(text.substring(3, 5));
-                  if (mm < 1 || mm > 12) return 'Mes inválido';
-                  if (yy < 26) return 'Año debe ser 26 o mayor';
-                  return null;
-                },
+                validator: _validateExpiry,
               ),
             ],
           ),
@@ -249,8 +261,6 @@ class _ExpiryDateInputFormatter extends TextInputFormatter {
   ) {
     // Keep only digits
     final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    String mm = '';
-    String yy = '';
 
     if (digits.isEmpty) {
       return const TextEditingValue(
@@ -259,26 +269,28 @@ class _ExpiryDateInputFormatter extends TextInputFormatter {
       );
     }
 
-    if (digits.length >= 1) {
-      mm = digits.substring(0, 1);
-    }
-    if (digits.length >= 2) {
+    String mm;
+    String yy = '';
+
+    if (digits.length == 1) {
+      // Si empieza con 2-9, completa el cero: "5" -> "05"
+      mm = int.parse(digits) > 1 ? '0$digits' : digits;
+    } else {
       mm = digits.substring(0, 2);
       final m = int.tryParse(mm) ?? 0;
-      // Reject invalid month as you type
+      // Rechaza mes inválido mientras se escribe
       if (m == 0 || m > 12) {
-        return oldValue; // keep previous valid value
+        return oldValue;
       }
-    }
-    if (digits.length > 2) {
-      yy = digits.substring(2, digits.length.clamp(2, 4));
+      if (digits.length > 2) {
+        yy = digits.substring(2, digits.length.clamp(2, 4));
+      }
     }
 
     final composed = yy.isEmpty ? mm : '$mm/$yy';
-    final offset = composed.length;
     return TextEditingValue(
       text: composed,
-      selection: TextSelection.collapsed(offset: offset),
+      selection: TextSelection.collapsed(offset: composed.length),
     );
   }
 }

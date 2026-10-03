@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 import 'package:flutter_application_1/model/Tarjeta.dart';
 import 'package:flutter_application_1/page/pagos/componentes/AddCardDialog.dart';
@@ -8,7 +9,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 class RegisteredCards extends StatefulWidget {
   final String idCliente;
   final VoidCallback? onCardsChanged;
-  final void Function(Tarjeta selected)? onSelectedChanged;
+
+  /// Se llama con la tarjeta seleccionada, o con null si no hay tarjetas.
+  final void Function(Tarjeta? selected)? onSelectedChanged;
 
   const RegisteredCards({
     super.key,
@@ -29,7 +32,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
   int _currentIndex = 0;
   List<Tarjeta> _tarjetas = const [];
 
-  static const green = Color(0xFF1E8A5F);
+  static const green = AppColors.primary;
 
   @override
   void initState() {
@@ -39,10 +42,6 @@ class _RegisteredCardsState extends State<RegisteredCards> {
     } else {
       _loadTarjetas();
     }
-
-    _pageController.addListener(() {
-      // Listener for animation; selection is handled in onPageChanged
-    });
   }
 
   void _loadTarjetas() {
@@ -62,14 +61,16 @@ class _RegisteredCardsState extends State<RegisteredCards> {
         0,
         _tarjetas.isEmpty ? 0 : _tarjetas.length - 1,
       );
-      // Mover el pageController cuando las tarjetas estén listas en build.
+      // Mover el pageController y avisar la selección cuando todo esté listo.
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _pageController.hasClients) {
+        if (!mounted) return;
+        if (_tarjetas.isNotEmpty && _pageController.hasClients) {
           _pageController.jumpToPage(_currentIndex);
         }
-        if (_tarjetas.isNotEmpty && widget.onSelectedChanged != null) {
-          widget.onSelectedChanged!(_tarjetas[_currentIndex]);
-        }
+        // Si no quedan tarjetas, avisa null para limpiar la selección.
+        widget.onSelectedChanged?.call(
+          _tarjetas.isEmpty ? null : _tarjetas[_currentIndex],
+        );
       });
       return list;
     });
@@ -83,6 +84,8 @@ class _RegisteredCardsState extends State<RegisteredCards> {
     setState(() {
       if (widget.idCliente.isEmpty) {
         _futureTarjetas = Future.value(const <Tarjeta>[]);
+        _tarjetas = const [];
+        widget.onSelectedChanged?.call(null);
       } else {
         _loadTarjetas();
       }
@@ -131,14 +134,13 @@ class _RegisteredCardsState extends State<RegisteredCards> {
       );
       await _tarjetaService.delete(tarjeta.id!);
       debugPrint('[CARD DEBUG UI] Eliminación OK. Refrescando listas');
+      if (!mounted) return;
+      // Recarga y, al terminar, avisa la nueva selección (o null si no quedan)
       _refresh();
-      // Notifica al contenedor (Pagos) para que refresque también
       widget.onCardsChanged?.call();
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Tarjeta eliminada')));
-      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Tarjeta eliminada')));
     } catch (e) {
       debugPrint('[CARD DEBUG UI] Error al eliminar: $e');
       // TarjetaService ya mostró el popup de error; no hace falta duplicar.
@@ -233,9 +235,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
                     onPageChanged: (i) async {
                       _currentIndex = i;
                       final selected = _tarjetas[i];
-                      if (widget.onSelectedChanged != null) {
-                        widget.onSelectedChanged!(selected);
-                      }
+                      widget.onSelectedChanged?.call(selected);
                       // Persistir selección
                       final prefs = await SharedPreferences.getInstance();
                       if (selected.id != null) {
@@ -244,7 +244,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
                           selected.id.toString(),
                         );
                       }
-                      setState(() {});
+                      if (mounted) setState(() {});
                     },
                     itemBuilder: (context, index) {
                       return AnimatedBuilder(
@@ -332,13 +332,13 @@ class _CardTile extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black26.withOpacity(selected ? 0.35 : 0.15),
+            color: Colors.black26.withValues(alpha: selected ? 0.35 : 0.15),
             blurRadius: selected ? 14 : 6,
             offset: const Offset(0, 4),
           ),
         ],
         border: selected
-            ? Border.all(color: Colors.white.withOpacity(0.8), width: 1.2)
+            ? Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.2)
             : null,
       ),
       child: Column(
@@ -413,7 +413,7 @@ class _CardTile extends StatelessWidget {
                 icon: Icon(
                   Icons.delete_outline,
                   color: tarjeta.id == null
-                      ? Colors.redAccent.withOpacity(0.4)
+                      ? Colors.redAccent.withValues(alpha: 0.4)
                       : Colors.redAccent,
                 ),
                 tooltip: 'Eliminar tarjeta',
@@ -441,8 +441,8 @@ List<Color> _brandGradientFor(String marca) {
     // Dark opaque yellow for Mastercard
     return const [Color(0xFFF9A825), Color(0xFFFBC02D)];
   }
-  // Default green theme
-  return const [Color(0xFF1B5E20), Color(0xFF43A047)];
+  // Default BusYa blue theme; Amex keeps its card-network green above.
+  return const [AppColors.primary, AppColors.primary];
 }
 
 // Botón con borde punteado
@@ -452,7 +452,7 @@ class DottedBorderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const green = Color(0xFF1E8A5F);
+    const green = AppColors.primary;
 
     return InkWell(
       onTap: onTap,

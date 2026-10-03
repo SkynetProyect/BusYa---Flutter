@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../model/Tarjeta.dart';
 import '../../../model/PagoNfcResult.dart';
 import '../../../service/nfc_service.dart';
-<<<<<<< HEAD
-import '../../../service/rest/tarjeta/TarjetaService.dart';
-=======
-import '../../../service/rest/transaccion_nfc/TransaccionNfcService.dart';
->>>>>>> 56e2ba46053e9047a11b76b186c3c42541f511d8
-import '../../../widget/custombutton/custom_button.dart';
 import '../../../service/PaymentProcessorService.dart';
+import '../../../widget/custombutton/custom_button.dart';
+import '../../../service/determinePosition.dart';
 
 class NfcPayment extends StatefulWidget {
   final String idCliente;
@@ -22,15 +19,10 @@ class NfcPayment extends StatefulWidget {
 }
 
 class _NfcPaymentState extends State<NfcPayment> {
-  static const darkPurple = Color(0xFF33304E);
-  static const greenPrimary = Color(0xFF529471);
+  static const darkPurple = AppColors.primary;
+  static const greenPrimary = AppColors.primary;
 
-<<<<<<< HEAD
-  final _tarjetaService = TarjetaService();
   final _paymentService = PaymentProcessorService();
-=======
-  final _transaccionService = TransaccionNfcService();
->>>>>>> 56e2ba46053e9047a11b76b186c3c42541f511d8
 
   Tarjeta? _tarjetaSeleccionada;
   bool _isProcessing = false;
@@ -75,13 +67,10 @@ class _NfcPaymentState extends State<NfcPayment> {
 
   Future<void> _procesarCobro(Map<String, dynamic> dataNfc) async {
     try {
+      // Pide permisos si hace falta; si falla, el pago sigue sin ubicación
       Position? position;
       try {
-        position = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.high,
-          ),
-        );
+        position = await determinePosition();
       } catch (_) {}
 
       final resultado = await _paymentService.procesarPagoNfc(
@@ -205,41 +194,6 @@ class _NfcPaymentState extends State<NfcPayment> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-<<<<<<< HEAD
-        FutureBuilder<List<Tarjeta>>(
-          future: _futureTarjetas,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: CircularProgressIndicator(color: greenPrimary),
-              );
-            }
-            if (snapshot.hasError ||
-                !snapshot.hasData ||
-                snapshot.data!.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Text(
-                  'No tienes tarjetas registradas para realizar el pago',
-                  style: TextStyle(color: Colors.black54),
-                ),
-              );
-            }
-
-            final tarjetas = snapshot.data!;
-            _tarjetaSeleccionada ??= tarjetas.first;
-
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFEBECEF)),
-=======
         // --- Resumen de tarjeta seleccionada (sin dropdown) ---
         Container(
           width: double.infinity,
@@ -254,7 +208,6 @@ class _NfcPaymentState extends State<NfcPayment> {
               Icon(
                 Icons.credit_card,
                 color: _brandAccentColor(widget.selectedTarjeta?.marca),
->>>>>>> 56e2ba46053e9047a11b76b186c3c42541f511d8
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -327,8 +280,9 @@ class _NfcPaymentState extends State<NfcPayment> {
 Color _brandAccentColor(String? marca) {
   final m = (marca ?? '').trim().toUpperCase();
   if (m.contains('VISA')) return const Color(0xFF1E5AB6);
-  if (m.contains('AMEX') || m.contains('AMERICAN'))
+  if (m.contains('AMEX') || m.contains('AMERICAN')) {
     return const Color(0xFF66BB6A);
+  }
   if (m.contains('MASTER')) return const Color(0xFFF9A825);
-  return _NfcPaymentState.greenPrimary;
+  return AppColors.primary;
 }

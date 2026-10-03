@@ -1,13 +1,16 @@
-// lib/service/rest/pago/PaymentProcessorService.dart
+// lib/service/PaymentProcessorService.dart
+import 'dart:async';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../../model/PagoNfcResult.dart';
-import '../../../model/Tarjeta.dart';
+import '../model/PagoNfcResult.dart';
+import '../model/Tarjeta.dart';
 
 class PaymentProcessorService {
-  //  Actualiza esto cada vez que reinicies ngrok
+  // API desplegada en Render
   static const String _baseUrl =
-      'https://willow-freeing-mushiness.ngrok-free.dev/api/payments';
+      'https://busya-payment-simulated-api.onrender.com/api/payments';
+
+  static const Duration _timeout = Duration(seconds: 60);
 
   Future<PagoNfcResult> procesarPagoNfc({
     required Map<String, dynamic> dataNfc,
@@ -35,13 +38,12 @@ class PaymentProcessorService {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
-              'ngrok-skip-browser-warning': 'true',
             },
             body: jsonEncode(paymentPayload),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(_timeout);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         return PagoNfcResult.fromJson(data);
       }
@@ -49,6 +51,12 @@ class PaymentProcessorService {
       return PagoNfcResult(
         status: PagoNfcStatus.error,
         message: 'Error del servidor de pagos (${response.statusCode})',
+      );
+    } on TimeoutException {
+      return PagoNfcResult(
+        status: PagoNfcStatus.error,
+        message:
+            'El servidor de pagos tardó demasiado en responder. Intenta de nuevo.',
       );
     } catch (e) {
       return PagoNfcResult(

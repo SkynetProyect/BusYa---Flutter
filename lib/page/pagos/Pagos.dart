@@ -15,15 +15,12 @@ class Pagos extends StatefulWidget {
 }
 
 class _PagosState extends State<Pagos> {
-  int _refreshTick = 0;
   Tarjeta? _selectedCard;
 
-  void _onCardsChanged() {
-    // Forzar que NfcPayment se reconstruya desde cero (initState) y recargue
-    setState(() => _refreshTick++);
-  }
-
-  void _onSelectedCardChanged(Tarjeta card) {
+  // RegisteredCards avisa la selección después de cada carga/recarga.
+  // Llega null cuando el cliente ya no tiene tarjetas.
+  void _onSelectedCardChanged(Tarjeta? card) {
+    if (!mounted) return;
     setState(() => _selectedCard = card);
   }
 
@@ -40,14 +37,12 @@ class _PagosState extends State<Pagos> {
               children: [
                 // Acción NFC que usa la tarjeta seleccionada del carrusel
                 NfcPayment(
-                  key: ValueKey(_refreshTick),
                   idCliente: widget.idCliente,
                   selectedTarjeta: _selectedCard,
                 ),
                 // Carrusel horizontal de tarjetas
                 RegisteredCards(
                   idCliente: widget.idCliente,
-                  onCardsChanged: _onCardsChanged,
                   onSelectedChanged: _onSelectedCardChanged,
                 ),
               ],
