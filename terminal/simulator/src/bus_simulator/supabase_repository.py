@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from postgrest.exceptions import APIError
+
 from supabase import Client, create_client
 
 
@@ -13,7 +15,7 @@ class SupabaseRepository:
         buses = self.client.table("buses").select("*").execute().data
         routes = self.client.table("rutas").select("*").execute().data
         return list(buses), list(routes)
-
+        
     def publish(self, report: dict[str, Any], timestamp: str) -> None:
         self.client.table("buses").update(
             {
@@ -23,6 +25,7 @@ class SupabaseRepository:
                 "ultima_actualizacion_gps": timestamp,
             }
         ).eq("id", report["bus_id"]).execute()
+
         self.client.table("telemetria_gps_logs").insert(
             {
                 "id_bus": report["bus_id"],

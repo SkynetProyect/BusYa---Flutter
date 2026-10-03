@@ -27,12 +27,13 @@ class SimulationTests(unittest.TestCase):
         )
         report = buses[0].advance(10, Random(2))
         self.assertEqual(set(("bus_id", "latitud", "longitud", "nivel_ocupacion")), set(report) & {"bus_id", "latitud", "longitud", "nivel_ocupacion"})
-        self.assertEqual(report["nivel_ocupacion"], "VERDE")
+        # nivel_ocupacion ahora es un ratio en texto como "0.25", "0.75", "1.00"
+        self.assertRegex(report["nivel_ocupacion"], r"^(0(\.\d+)?|1(\.0+)?)$")
 
     def test_occupancy_levels(self):
-        self.assertEqual(occupancy_level(1, 10), "VERDE")
-        self.assertEqual(occupancy_level(5, 10), "VERDE")
-        self.assertEqual(occupancy_level(9, 10), "VERDE")
+        self.assertEqual(occupancy_level(1, 10), "0.10")
+        self.assertEqual(occupancy_level(5, 10), "0.50")
+        self.assertEqual(occupancy_level(9, 10), "0.90")
 
 
 if __name__ == "__main__":

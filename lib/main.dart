@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/page/Home.dart';
+import 'package:flutter_application_1/service/notification_service.dart'
+    show NotificationService;
 import 'app_keys.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_listener.dart';
@@ -8,6 +10,7 @@ import 'page/auth/login_page.dart';
 Future<void> main() async {
   // para operaciones asincrónicas antes de ejecutar la aplicación
   WidgetsFlutterBinding.ensureInitialized();
+
   //se inicia supabase
   await SupabaseConfig.init();
   debugPrint(
@@ -15,6 +18,10 @@ Future<void> main() async {
     'hasSession=${supabase.auth.currentSession != null}',
   );
   AuthListener.listenAuthChanges();
+
+  // se inician las notificaciones locales
+  await NotificationService().init();
+
   runApp(const Main());
 }
 

@@ -3,14 +3,19 @@ import 'package:geolocator/geolocator.dart';
 import '../../../model/Tarjeta.dart';
 import '../../../model/PagoNfcResult.dart';
 import '../../../service/nfc_service.dart';
+<<<<<<< HEAD
 import '../../../service/rest/tarjeta/TarjetaService.dart';
+=======
+import '../../../service/rest/transaccion_nfc/TransaccionNfcService.dart';
+>>>>>>> 56e2ba46053e9047a11b76b186c3c42541f511d8
 import '../../../widget/custombutton/custom_button.dart';
 import '../../../service/PaymentProcessorService.dart';
 
 class NfcPayment extends StatefulWidget {
   final String idCliente;
+  final Tarjeta? selectedTarjeta;
 
-  const NfcPayment({super.key, required this.idCliente});
+  const NfcPayment({super.key, required this.idCliente, this.selectedTarjeta});
 
   @override
   State<NfcPayment> createState() => _NfcPaymentState();
@@ -20,17 +25,28 @@ class _NfcPaymentState extends State<NfcPayment> {
   static const darkPurple = Color(0xFF33304E);
   static const greenPrimary = Color(0xFF529471);
 
+<<<<<<< HEAD
   final _tarjetaService = TarjetaService();
   final _paymentService = PaymentProcessorService();
+=======
+  final _transaccionService = TransaccionNfcService();
+>>>>>>> 56e2ba46053e9047a11b76b186c3c42541f511d8
 
-  late Future<List<Tarjeta>> _futureTarjetas;
   Tarjeta? _tarjetaSeleccionada;
   bool _isProcessing = false;
 
   @override
   void initState() {
     super.initState();
-    _futureTarjetas = _tarjetaService.getByClienteId(widget.idCliente);
+    _tarjetaSeleccionada = widget.selectedTarjeta;
+  }
+
+  @override
+  void didUpdateWidget(covariant NfcPayment oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedTarjeta?.id != widget.selectedTarjeta?.id) {
+      _tarjetaSeleccionada = widget.selectedTarjeta;
+    }
   }
 
   void _iniciarPagoNfc() async {
@@ -189,6 +205,7 @@ class _NfcPaymentState extends State<NfcPayment> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+<<<<<<< HEAD
         FutureBuilder<List<Tarjeta>>(
           future: _futureTarjetas,
           builder: (context, snapshot) {
@@ -222,33 +239,38 @@ class _NfcPaymentState extends State<NfcPayment> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: const Color(0xFFEBECEF)),
+=======
+        // --- Resumen de tarjeta seleccionada (sin dropdown) ---
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFEBECEF)),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.credit_card,
+                color: _brandAccentColor(widget.selectedTarjeta?.marca),
+>>>>>>> 56e2ba46053e9047a11b76b186c3c42541f511d8
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<Tarjeta>(
-                  isExpanded: true,
-                  value: _tarjetaSeleccionada,
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: greenPrimary,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.selectedTarjeta != null
+                      ? '${widget.selectedTarjeta!.marca} •••• ${widget.selectedTarjeta!.ultimosCuatroDigitos}'
+                      : 'No tienes tarjetas registradas',
+                  style: const TextStyle(
+                    color: darkPurple,
+                    fontWeight: FontWeight.w600,
                   ),
-                  items: tarjetas.map((t) {
-                    return DropdownMenuItem(
-                      value: t,
-                      child: Text(
-                        '${t.marca} •••• ${t.ultimosCuatroDigitos}',
-                        style: const TextStyle(
-                          color: darkPurple,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) =>
-                      setState(() => _tarjetaSeleccionada = val),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-            );
-          },
+            ],
+          ),
         ),
         const SizedBox(height: 16),
         Container(
@@ -300,4 +322,13 @@ class _NfcPaymentState extends State<NfcPayment> {
       ],
     );
   }
+}
+
+Color _brandAccentColor(String? marca) {
+  final m = (marca ?? '').trim().toUpperCase();
+  if (m.contains('VISA')) return const Color(0xFF1E5AB6);
+  if (m.contains('AMEX') || m.contains('AMERICAN'))
+    return const Color(0xFF66BB6A);
+  if (m.contains('MASTER')) return const Color(0xFFF9A825);
+  return _NfcPaymentState.greenPrimary;
 }

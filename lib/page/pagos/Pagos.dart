@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/page/pagos/componentes/NfcPayment.dart'
     show NfcPayment;
 import 'package:flutter_application_1/page/pagos/componentes/RegisteredCards.dart';
+import 'package:flutter_application_1/model/Tarjeta.dart' show Tarjeta;
 import 'package:flutter_application_1/page/pagos/componentes/TopBar.dart';
 
 class Pagos extends StatefulWidget {
@@ -15,10 +16,15 @@ class Pagos extends StatefulWidget {
 
 class _PagosState extends State<Pagos> {
   int _refreshTick = 0;
+  Tarjeta? _selectedCard;
 
   void _onCardsChanged() {
     // Forzar que NfcPayment se reconstruya desde cero (initState) y recargue
     setState(() => _refreshTick++);
+  }
+
+  void _onSelectedCardChanged(Tarjeta card) {
+    setState(() => _selectedCard = card);
   }
 
   @override
@@ -32,14 +38,17 @@ class _PagosState extends State<Pagos> {
             child: ListView(
               padding: const EdgeInsets.all(20),
               children: [
-                // Al cambiar la key, se recrea el State y se vuelven a cargar las tarjetas
+                // Acción NFC que usa la tarjeta seleccionada del carrusel
                 NfcPayment(
                   key: ValueKey(_refreshTick),
                   idCliente: widget.idCliente,
+                  selectedTarjeta: _selectedCard,
                 ),
+                // Carrusel horizontal de tarjetas
                 RegisteredCards(
                   idCliente: widget.idCliente,
                   onCardsChanged: _onCardsChanged,
+                  onSelectedChanged: _onSelectedCardChanged,
                 ),
               ],
             ),

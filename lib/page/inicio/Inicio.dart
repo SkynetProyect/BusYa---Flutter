@@ -1,9 +1,13 @@
+import 'package:audioplayers/audioplayers.dart' show AudioPlayer, AssetSource;
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
 import 'package:flutter_application_1/page/inicio/componentes/TopBar.dart';
 import 'package:flutter_application_1/service/determinePosition.dart'
     show determinePosition;
+import 'package:flutter_application_1/service/notification_service.dart'
+    show NotificationService;
+
 import 'package:flutter_application_1/service/rest/bus/BusService.dart'
     show BusService;
 import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart'
@@ -13,6 +17,9 @@ import 'package:flutter_application_1/service/rest/ruta/RutaService.dart'
 import 'package:flutter_map/flutter_map.dart' as flutter_map;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' as latlong;
+import 'package:flutter_application_1/model/Bus.dart' show Bus;
+import 'package:flutter_application_1/page/inicio/componentes/BusInfoSheet.dart'
+    show BusInfoSheet;
 
 import 'dart:async';
 
@@ -23,7 +30,7 @@ class Inicio extends StatefulWidget {
   State<Inicio> createState() => _InicioState();
 }
 
-class _InicioState extends State<Inicio> {
+class _InicioState extends State<Inicio> with WidgetsBindingObserver {
   final RutaService _rutaService = RutaService();
   final EmpresaService _empresaService = EmpresaService();
   final BusService _busService = BusService();
@@ -47,18 +54,63 @@ class _InicioState extends State<Inicio> {
   latlong.LatLng? _userPosition;
   bool _centerOnUserLocation = true;
 
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  final Set<int> _busesAlertados =
+      {}; // ids de buses ya alertados en este acercamiento
+  static const double _distanciaAlertaMetros = 1000; // ajusta según necesites
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _cargarEmpresas();
     _cargarUbicacion();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _busTimer?.cancel();
     _positionSubscription?.cancel();
+    _audioPlayer.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        _busTimer?.cancel();
+        _busTimer = null;
+        _positionSubscription?.pause();
+        break;
+      case AppLifecycleState.resumed:
+        _positionSubscription?.resume();
+        if (_rutaSeleccionada != null && _busTimer == null) {
+          _actualizarBuses(); // refresca inmediatamente al volver
+          _busTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+            _actualizarBuses();
+          });
+        }
+        break;
+      case AppLifecycleState.hidden:
+        break;
+    }
+  }
+
+  double _distanciaMetros(latlong.LatLng a, latlong.LatLng b) {
+    const distance = latlong.Distance();
+    return distance.as(latlong.LengthUnit.Meter, a, b);
+  }
+
+  Future<void> _reproducirAlerta() async {
+    try {
+      await _audioPlayer.play(AssetSource('sounds/bus_alert.mp3'));
+    } catch (_) {
+      // si falla el audio no debe romper la app
+    }
   }
 
   Future<void> _cargarUbicacion() async {
@@ -66,12 +118,20 @@ class _InicioState extends State<Inicio> {
       final position = await determinePosition();
       if (!mounted) return;
       _actualizarUbicacion(position);
-      _positionSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 5,
-        ),
-      ).listen(_actualizarUbicacion);
+      _positionSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 5,
+            ),
+          ).listen(
+            _actualizarUbicacion,
+            onError: (error) {
+              debugPrint('[LOCATION DEBUG] stream error: $error');
+              // no relanzamos, simplemente lo ignoramos para no romper la UI
+            },
+            cancelOnError: false,
+          );
     } catch (_) {
       // La pantalla sigue funcionando aunque el usuario no conceda ubicación.
     }
@@ -137,11 +197,15 @@ class _InicioState extends State<Inicio> {
 
     if (ruta == null) return;
 
+    debugPrint(
+      '[ROUTE DEBUG] selected route -> id=${ruta.id}, idEmpresa=${ruta.idEmpresa}, nombre=${ruta.nombre}, precio=${ruta.precioPasaje}, polylineLength=${ruta.encodedPolyline?.length ?? 0}',
+    );
+
     _dibujarPolyline(ruta);
     await _actualizarBuses(); // primera carga inmediata
     if (!mounted || _rutaSeleccionada?.id != ruta.id) return;
 
-    _busTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _busTimer = Timer.periodic(const Duration(seconds: 2), (_) {
       _actualizarBuses();
     });
   }
@@ -166,6 +230,7 @@ class _InicioState extends State<Inicio> {
   }
 
   Future<void> _actualizarBuses() async {
+    if (!mounted) return;
     final routeId = _rutaSeleccionada?.id;
     if (routeId == null || _busRequestInFlight) return;
 
@@ -175,25 +240,66 @@ class _InicioState extends State<Inicio> {
       if (!mounted || _rutaSeleccionada?.id != routeId) return;
 
       final nuevosMarkers = <flutter_map.Marker>[];
+      final busesActualesIds = <int>{};
+
       for (final bus in buses) {
         if (bus.latitudActual == null || bus.longitudActual == null) continue;
 
+        final busPos = latlong.LatLng(bus.latitudActual!, bus.longitudActual!);
+        if (bus.id != null) busesActualesIds.add(bus.id!);
+        // --- Alerta de proximidad ---
+        if (bus.id != null && _userPosition != null) {
+          final distancia = _distanciaMetros(_userPosition!, busPos);
+          final yaAlertado = _busesAlertados.contains(bus.id);
+
+          if (distancia <= _distanciaAlertaMetros && !yaAlertado) {
+            _busesAlertados.add(bus.id!);
+            _reproducirAlerta();
+
+            NotificationService().mostrarNotificacion(
+              id: bus.id!,
+              titulo: 'Bus cerca de ti',
+              cuerpo:
+                  'El bus ${bus.placa} está a menos de ${_distanciaAlertaMetros.toInt()} metros',
+            );
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('El bus ${bus.placa} está cerca de ti'),
+                  duration: const Duration(seconds: 3),
+                ),
+              );
+            }
+          } else if (distancia > _distanciaAlertaMetros && yaAlertado) {
+            // si se aleja de nuevo, permite re-alertar en un futuro acercamiento
+            _busesAlertados.remove(bus.id);
+          }
+        }
+
         nuevosMarkers.add(
           flutter_map.Marker(
-            point: latlong.LatLng(bus.latitudActual!, bus.longitudActual!),
+            point: busPos,
             width: 44,
             height: 44,
-            child: Tooltip(
-              message: '${bus.placa}: ${_textoOcupacion(bus.nivelOcupacion)}',
-              child: Icon(
-                Icons.directions_bus,
-                color: _colorDeOcupacion(bus.nivelOcupacion),
-                size: 30,
+            child: GestureDetector(
+              onTap: () => _showBusInfo(bus),
+              child: Tooltip(
+                message:
+                    '${bus.placa}: ${_textoPorcentaje(bus.nivelOcupacion)}',
+                child: Icon(
+                  Icons.directions_bus,
+                  color: _colorDeOcupacion(bus.nivelOcupacion),
+                  size: 30,
+                ),
               ),
             ),
           ),
         );
       }
+
+      // limpia alertas de buses que ya no están en la ruta
+      _busesAlertados.removeWhere((id) => !busesActualesIds.contains(id));
 
       if (!mounted) return;
       setState(() {
@@ -206,8 +312,53 @@ class _InicioState extends State<Inicio> {
     }
   }
 
+  void _showBusInfo(Bus bus) {
+    if (!mounted) return;
+    final color = _colorDeOcupacion(bus.nivelOcupacion);
+    final ocupacion = _textoPorcentaje(bus.nivelOcupacion);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: false,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => BusInfoSheet(
+        bus: bus,
+        markerColor: color,
+        ocupacionTexto: ocupacion,
+        rutaNombre: _rutaSeleccionada?.nombre,
+      ),
+    );
+  }
+
+  String _textoPorcentaje(String? nivel) {
+    final parsed = _parseOccupancyRatio(nivel);
+    if (parsed != null) {
+      if (parsed > 0.8) return 'Lleno';
+      if (parsed > 0.6) return 'Moderado';
+      return 'Vacío';
+    }
+
+    switch (nivel?.toUpperCase()) {
+      case 'ROJO':
+        return 'Lleno';
+      case 'NARANJA':
+        return 'Moderado';
+      case 'VERDE':
+      default:
+        return 'Vacío';
+    }
+  }
+
   Color _colorDeOcupacion(String? nivel) {
-    switch (nivel) {
+    final parsed = _parseOccupancyRatio(nivel);
+    if (parsed != null) {
+      if (parsed > 0.8) return Colors.red;
+      if (parsed > 0.6) return Colors.orange;
+      return Colors.green;
+    }
+
+    switch (nivel?.toUpperCase()) {
       case 'ROJO':
         return Colors.red;
       case 'NARANJA':
@@ -218,17 +369,28 @@ class _InicioState extends State<Inicio> {
     }
   }
 
-  String _textoOcupacion(String? nivel) {
-    switch (nivel) {
-      case 'ROJO':
-        return 'Ocupación alta';
-      case 'NARANJA':
-        return 'Ocupación media';
-      case 'VERDE':
-        return 'Ocupación baja';
-      default:
-        return 'Sin datos de ocupación';
+  // Intenta extraer un ratio [0..1] a partir de una cadena como
+  // "50%", "0.5", "75 %", etc. Devuelve null si no es interpretable.
+  double? _parseOccupancyRatio(String? raw) {
+    if (raw == null) return null;
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+
+    // Si contiene un número, extraerlo
+    final numberMatch = RegExp(r"([0-9]+(?:[.,][0-9]+)?)").firstMatch(s);
+    if (numberMatch == null) return null;
+    final numStr = numberMatch.group(1)!.replaceAll(',', '.');
+    final value = double.tryParse(numStr);
+    if (value == null) return null;
+
+    // Si hay un porcentaje explícito, interpretarlo como 0..100
+    if (s.contains('%')) {
+      return (value.clamp(0, 100)) / 100.0;
     }
+
+    // Sin %, si el valor está en 0..1, tómalo como ratio; si > 1, asume porcentaje 0..100
+    if (value <= 1.0) return value.clamp(0.0, 1.0);
+    return (value.clamp(0.0, 100.0)) / 100.0;
   }
 
   Future<void> _ajustarCamara(List<latlong.LatLng> points) async {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/page/Home.dart' show Application;
+import 'package:flutter_application_1/page/auth/login_page.dart' show LoginPage;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app_keys.dart';
-import '../page/Home.dart';
-import '../page/auth/login_page.dart';
 import 'supabase_client.dart';
 
 class AuthListener {

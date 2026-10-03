@@ -52,11 +52,18 @@ class BusService extends SupabaseServiceBase {
     idRuta: row['id_ruta'] as int?,
     placa: row['placa'] as String,
     capacidadMaxima: row['capacidad_maxima'] as int,
-    nivelOcupacion: row['nivel_ocupacion'] as String?,
+    nivelOcupacion: _normalizeOcupacion(row['nivel_ocupacion']),
     latitudActual: doubleValue(row['latitud_actual']),
     longitudActual: doubleValue(row['longitud_actual']),
     ultimaActualizacionGps: dateTime(row['ultima_actualizacion_gps']),
   );
+
+  String? _normalizeOcupacion(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) return raw.trim();
+    if (raw is num) return raw.toString();
+    return raw.toString();
+  }
 
   Map<String, dynamic> _toRow(Bus item) => {
     if (item.id != null) 'id': item.id,

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/page/Home.dart';
+import 'package:flutter_application_1/page/auth/login_page.dart' show LoginPage;
 import 'app_keys.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_listener.dart';
-import 'page/auth/login_page.dart';
 
 Future<void> main() async {
   // para operaciones asincrónicas antes de ejecutar la aplicación
