@@ -3,6 +3,7 @@ import 'package:flutter_application_1/page/Home.dart';
 import 'package:flutter_application_1/service/notification_service.dart'
     show NotificationService;
 import 'app_keys.dart';
+import 'core/app_colors.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_listener.dart';
 import 'page/auth/login_page.dart';
@@ -34,14 +35,15 @@ class Main extends StatelessWidget {
 
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: "Busya",
+      title: "BusYa",
       home: session == null ? const LoginPage() : const Application(),
       theme: ThemeData(
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
+          seedColor: AppColors.primary,
           brightness: Brightness.light,
         ),
+        scaffoldBackgroundColor: AppColors.surface,
       ),
     );
   }

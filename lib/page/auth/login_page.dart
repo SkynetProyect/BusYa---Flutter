@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import '../../service/rest/auth/auth_repository.dart';
 import '../../service/rest/auth/auth_repository_impl.dart.dart';
 import 'register_page.dart';
@@ -54,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFF33304E),
+        backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -87,7 +88,7 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF33304E),
+                          color: AppColors.primary,
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -118,7 +119,7 @@ class _LoginPageState extends State<LoginPage> {
                           child: const Text(
                             '¿Olvidaste tu contraseña?',
                             style: TextStyle(
-                              color: Color(0xFF529471),
+                              color: AppColors.primary,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                             ),
@@ -151,7 +152,7 @@ class _LoginPageState extends State<LoginPage> {
                         TextSpan(
                           text: 'Regístrate aquí',
                           style: TextStyle(
-                            color: Color(0xFF529471),
+                            color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

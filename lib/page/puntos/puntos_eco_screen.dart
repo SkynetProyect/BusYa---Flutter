@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import '../../service/puntos_service.dart';
 
 class PuntosEcoScreen extends StatefulWidget {
@@ -42,12 +43,12 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mis Puntos Eco'),
-        backgroundColor: const Color(0xFF1B5E20),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         centerTitle: true,
       ),
       body: _cargando
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF1B5E20)))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : RefreshIndicator(
               onRefresh: _cargarPuntos,
               child: SingleChildScrollView(
@@ -61,7 +62,7 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
                       padding: const EdgeInsets.all(24.0),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF2E7D32), Color(0xFF1B5E20)],
+                          colors: [AppColors.primaryLight, AppColors.primary],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -117,16 +118,16 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8F5E9),
                           borderRadius: BorderRadius.circular(12),
-                         border: Border.all(color: Colors.green.shade200),
+                          border: Border.all(color: AppColors.green.withValues(alpha: 0.45)),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.info_outline, color: Color(0xFF2E7D32)),
+                            Icon(Icons.info_outline, color: AppColors.primaryLight),
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Aún no tienes puntos. ¡Realiza tu primer viaje con BusYa para empezar a sumar!',
-                                style: TextStyle(color: Color(0xFF1B5E20), fontSize: 13),
+                                style: TextStyle(color: AppColors.primary, fontSize: 13),
                               ),
                             ),
                           ],
@@ -170,7 +171,7 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: const Color(0xFFE8F5E9),
-          child: Icon(icon, color: const Color(0xFF2E7D32)),
+          child: Icon(icon, color: AppColors.primaryLight),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black54)),

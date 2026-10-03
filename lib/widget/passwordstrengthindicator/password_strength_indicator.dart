@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import '../../core/utils/validators.dart';
 
 class PasswordStrengthIndicator extends StatelessWidget {
@@ -83,7 +84,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
           Icon(
             isMet ? Icons.check_circle : Icons.radio_button_unchecked,
             size: 16,
-            color: isMet ? const Color(0xFF529471) : Colors.grey,
+                  color: isMet ? AppColors.greenDark : Colors.grey,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -107,7 +108,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
     if (strength <= 0.2) return Colors.red;
     if (strength <= 0.6) return Colors.orange;
     if (strength <= 0.8) return Colors.amber;
-    return const Color(0xFF529471);
+    return AppColors.greenDark;
   }
 
   String _getLabel(double strength) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import '../../core/utils/validators.dart';
 import '../../service/rest/auth/auth_repository.dart';
 import '../../service/rest/auth/auth_repository_impl.dart.dart';
@@ -124,7 +125,7 @@ class _RegisterPageState extends State<RegisterPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFF33304E),
+        backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -132,8 +133,8 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    const darkPurple = Color(0xFF33304E);
-    const greenPrimary = Color(0xFF529471);
+    const darkPurple = AppColors.primary;
+    const greenPrimary = AppColors.primary;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),

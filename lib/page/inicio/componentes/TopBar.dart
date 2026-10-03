@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class TopBar extends StatelessWidget {
   const TopBar({super.key});
@@ -9,32 +10,24 @@ class TopBar extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF4C8C6B), // verde oscuro
-            Color(0xFF7FB89A), // verde claro
-          ],
-        ),
+        color: AppColors.primary,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  "BusYa", // <---------------------------------------------------  TEXTO 1
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
+                RichText(
+                  text: const TextSpan(
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.2),
+                    children: [
+                      TextSpan(text: 'bus', style: TextStyle(color: AppColors.greenOnPrimary)),
+                      TextSpan(text: 'YA', style: TextStyle(color: Colors.white)),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -59,20 +52,6 @@ class TopBar extends StatelessWidget {
             ),
           ),
           // Botón circular con ícono a la derecha
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons
-                  .accessible, // <---------------------------------------------------  Icono seccion
-              color: Colors.white,
-              size: 18,
-            ),
-          ),
         ],
       ),
     );

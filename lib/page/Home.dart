@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -58,14 +59,14 @@ class _Home extends State<Application> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color.fromARGB(248, 179, 174, 174),
+      backgroundColor: AppColors.surface,
       // Botón flotante para acceder directamente a Puntos Eco
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 75.0),
         child: FloatingActionButton.extended(
           heroTag: 'btnPuntosEco',
-          backgroundColor: const Color(0xFF1B5E20),
-          icon: const Icon(Icons.eco, color: Colors.lightGreenAccent),
+          backgroundColor: AppColors.greenDark,
+          icon: const Icon(Icons.eco, color: AppColors.green),
           label: const Text(
             'Puntos Eco',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class IconoPerfil extends StatelessWidget {
   final ValueChanged<int> callbackfunction;
@@ -13,7 +14,7 @@ class IconoPerfil extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isSelected = selectedIndex == 4;
-    const activeColor = Color(0xFF529471);
+    const activeColor = AppColors.primary;
     const inactiveColor = Color(0xFF9E9E9E);
 
     return InkWell(
