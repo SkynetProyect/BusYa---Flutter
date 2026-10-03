@@ -19,19 +19,26 @@ dependencies:
   google_fonts: ^8.1.0
   flutter_dotenv: ^6.0.1
   supabase_flutter: ^2.8.0
-  nfc_manager: ^4.1.1
+  nfc_manager: ^4.1.0
   nfc_manager_ndef: ^1.1.0
   http: ^1.2.0
   shared_preferences: ^2.2.3
-
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+
   assets:
     - .env
     - lib/assets/sounds/bus_alert.mp3
+    - lib/assets/images/logo_busya.png
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "lib/assets/images/logo_busya.png"
