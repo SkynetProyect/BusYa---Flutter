@@ -27,13 +27,23 @@ class UsuarioService extends SupabaseServiceBase {
     return _fromRow(Map<String, dynamic>.from(data));
   });
 
-  Future<Usuario> update(Usuario item) => guard(() async {
+  Future<Usuario> updateProfile({
+    required String id,
+    required String primerNombre,
+    required String primerApellido,
+    String? celular,
+  }) => guard(() async {
     final data = await supabase
         .from('usuarios')
-        .update(_toRow(item))
-        .eq('id', item.id)
+        .update({
+          'primer_nombre': primerNombre,
+          'primer_apellido': primerApellido,
+          'celular': celular,
+        })
+        .eq('id', id)
         .select()
         .single();
+
     return _fromRow(Map<String, dynamic>.from(data));
   });
 
