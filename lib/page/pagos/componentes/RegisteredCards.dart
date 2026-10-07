@@ -5,6 +5,7 @@ import 'package:flutter_application_1/model/Tarjeta.dart';
 import 'package:flutter_application_1/page/pagos/componentes/AddCardDialog.dart';
 import 'package:flutter_application_1/service/rest/tarjeta/TarjetaService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_application_1/page/historial/CardDetailHistoryPage.dart';
 
 class RegisteredCards extends StatefulWidget {
   final String idCliente;
@@ -96,6 +97,38 @@ class _RegisteredCardsState extends State<RegisteredCards> {
     setState(() {
       _loadTarjetas();
     });
+  }
+
+  /// Toque sobre una tarjeta:
+  /// - Si es una tarjeta lateral, solo la centra (queda seleccionada).
+  /// - Si ya está centrada, abre su historial.
+  void _onCardTap(int index) {
+    if (index != _currentIndex) {
+      _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+      return;
+    }
+
+    final tarjeta = _tarjetas[index];
+    if (tarjeta.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Esta tarjeta aún no tiene historial')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CardDetailHistoryPage(
+          idCliente: widget.idCliente,
+          tarjeta: tarjeta,
+        ),
+      ),
+    );
   }
 
   Future<void> _handleDelete(Tarjeta tarjeta) async {
@@ -252,7 +285,9 @@ class _RegisteredCardsState extends State<RegisteredCards> {
                         builder: (context, child) {
                           double scale = 1.0;
                           double opacity = 1.0;
-                          if (_pageController.position.haveDimensions) {
+                          // hasClients evita error en el primer frame
+                          if (_pageController.hasClients &&
+                              _pageController.position.haveDimensions) {
                             final page =
                                 _pageController.page ??
                                 _currentIndex.toDouble();
@@ -272,6 +307,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
                                   ),
                                   child: _CardTile(
                                     tarjeta: _tarjetas[index],
+                                    onTap: () => _onCardTap(index),
                                     onDelete: () =>
                                         _handleDelete(_tarjetas[index]),
                                     selected: index == _currentIndex,
@@ -285,12 +321,19 @@ class _RegisteredCardsState extends State<RegisteredCards> {
                     },
                   ),
                 ),
+                const SizedBox(height: 8),
+                const Center(
+                  child: Text(
+                    'Toca la tarjeta para ver su historial',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ),
               ],
             );
           },
         ),
 
-        const SizedBox(height: 4),
+        const SizedBox(height: 12),
 
         // Botón "Registrar nueva tarjeta"
         DottedBorderButton(onTap: _handleAddCard),
@@ -307,11 +350,13 @@ class _RegisteredCardsState extends State<RegisteredCards> {
 
 class _CardTile extends StatelessWidget {
   final Tarjeta tarjeta;
+  final VoidCallback onTap;
   final VoidCallback onDelete;
   final bool selected;
 
   const _CardTile({
     required this.tarjeta,
+    required this.onTap,
     required this.onDelete,
     this.selected = false,
   });
@@ -319,70 +364,93 @@ class _CardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = _brandGradientFor(tarjeta.marca);
-    return Container(
-      width: double.infinity,
-      height: 200,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: colors,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26.withValues(alpha: selected ? 0.35 : 0.15),
-            blurRadius: selected ? 14 : 6,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 200,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            colors: colors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-        border: selected
-            ? Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.2)
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                tarjeta.marca.toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              const Icon(Icons.contactless, color: Colors.white70, size: 28),
-            ],
-          ),
-          Text(
-            '•••• •••• •••• ${tarjeta.ultimosCuatroDigitos}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              letterSpacing: 2,
-              fontFamily: 'monospace',
-              fontWeight: FontWeight.w600,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26.withValues(alpha: selected ? 0.35 : 0.15),
+              blurRadius: selected ? 14 : 6,
+              offset: const Offset(0, 4),
             ),
-          ),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
+          ],
+          border: selected
+              ? Border.all(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  width: 1.2,
+                )
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  tarjeta.marca.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const Icon(Icons.contactless, color: Colors.white70, size: 28),
+              ],
+            ),
+            Text(
+              '•••• •••• •••• ${tarjeta.ultimosCuatroDigitos}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                letterSpacing: 2,
+                fontFamily: 'monospace',
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'TITULAR',
+                        style: TextStyle(color: Colors.white60, fontSize: 10),
+                      ),
+                      Text(
+                        tarjeta.nombreTitular,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'TITULAR',
+                      'EXP',
                       style: TextStyle(color: Colors.white60, fontSize: 10),
                     ),
                     Text(
-                      tarjeta.nombreTitular,
-                      overflow: TextOverflow.ellipsis,
+                      tarjeta.fechaVencimiento,
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -391,37 +459,20 @@ class _CardTile extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'EXP',
-                    style: TextStyle(color: Colors.white60, fontSize: 10),
+                IconButton(
+                  icon: Icon(
+                    Icons.delete_outline,
+                    color: tarjeta.id == null
+                        ? Colors.redAccent.withValues(alpha: 0.4)
+                        : Colors.redAccent,
                   ),
-                  Text(
-                    tarjeta.fechaVencimiento,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              IconButton(
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: tarjeta.id == null
-                      ? Colors.redAccent.withValues(alpha: 0.4)
-                      : Colors.redAccent,
+                  tooltip: 'Eliminar tarjeta',
+                  onPressed: tarjeta.id == null ? null : onDelete,
                 ),
-                tooltip: 'Eliminar tarjeta',
-                onPressed: tarjeta.id == null ? null : onDelete,
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

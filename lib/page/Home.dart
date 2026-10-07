@@ -54,7 +54,7 @@ class _Home extends State<Application> {
       Inicio(),
       Pagos(idCliente: _idCliente ?? ''),
       Rutas(),
-      Historial(),
+      Historial(idCliente: _idCliente ?? ''),
       Perfil(),
     ];
 
