@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/page/Home.dart';
 import 'package:flutter_application_1/service/notification_service.dart'
     show NotificationService;
+import 'package:intl/date_symbol_data_local.dart'; // <-- nuevo
 import 'app_keys.dart';
 import 'core/app_colors.dart';
 import 'core/supabase_client.dart';
@@ -11,6 +12,9 @@ import 'page/auth/login_page.dart';
 Future<void> main() async {
   // para operaciones asincrónicas antes de ejecutar la aplicación
   WidgetsFlutterBinding.ensureInitialized();
+
+  // formatos de fecha en español
+  await initializeDateFormatting('es_CO');
 
   //se inicia supabase
   await SupabaseConfig.init();
