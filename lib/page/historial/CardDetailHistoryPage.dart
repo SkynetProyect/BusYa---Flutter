@@ -4,6 +4,7 @@ import '../../../model/Tarjeta.dart';
 import '../../../model/TransaccionNfc.dart';
 import '../../../service/rest/transaccion_nfc/TransaccionNfcService.dart';
 import '../../widget/nfcstatusbanner/NfcStatusBanner.dart';
+import '../../widget/registeredcardvisual/RegisteredCardVisual.dart';
 import '../../widget/transactiontile/TransactionTile.dart';
 
 class CardDetailHistoryPage extends StatefulWidget {
@@ -67,42 +68,7 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
           children: [
             const NfcStatusBanner(),
 
-            // Tarjeta visual
-            Container(
-              height: 180,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        widget.tarjeta.marca,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                      const Text(
-                        'Débito',
-                        style: TextStyle(color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    '•••• ${widget.tarjeta.ultimosCuatroDigitos}',
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
+            RegisteredCardVisual(tarjeta: widget.tarjeta, selected: true),
 
             const SizedBox(height: 24),
             const Text(
