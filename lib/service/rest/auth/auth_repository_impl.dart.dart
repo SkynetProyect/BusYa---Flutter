@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/supabase_client.dart';
+import '../../dispositivo_fcm_service.dart';
 import 'auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -63,6 +64,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> signOut() async {
+    // Primero se borra el token: después del signOut ya no hay auth.uid().
+    await DispositivoFcmService.instance.eliminarToken();
     await supabase.auth.signOut();
   }
 

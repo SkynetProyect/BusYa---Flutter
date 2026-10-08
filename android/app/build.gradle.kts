@@ -1,7 +1,8 @@
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 dependencies {
@@ -9,7 +10,7 @@ dependencies {
 }
 
 android {
-    namespace = "com.example.flutter_application_1"
+    namespace = "com.android.application"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
@@ -20,13 +21,16 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.flutter_application_1"
+        applicationId = "com.android.application"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
         manifestPlaceholders["MAPS_API_KEY"] =
-            project.findProperty("MAPS_API_KEY") ?: System.getenv("MAPS_API_KEY") ?: ""
+            project.findProperty("MAPS_API_KEY")
+                ?: System.getenv("MAPS_API_KEY")
+                ?: ""
     }
 
     buildTypes {
