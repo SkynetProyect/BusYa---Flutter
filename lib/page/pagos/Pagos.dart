@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/model/Tarjeta.dart' show Tarjeta;
+import 'package:flutter_application_1/page/pagos/componentes/EmergencyPayment.dart';
 import 'package:flutter_application_1/page/pagos/componentes/NfcPayment.dart'
     show NfcPayment;
 import 'package:flutter_application_1/page/pagos/componentes/RegisteredCards.dart';
-import 'package:flutter_application_1/model/Tarjeta.dart' show Tarjeta;
 import 'package:flutter_application_1/page/pagos/componentes/TopBar.dart';
+import 'package:flutter_application_1/service/rest/transaccion_nfc/TransaccionNfcService.dart';
 
 class Pagos extends StatefulWidget {
   final String idCliente;
@@ -15,10 +17,31 @@ class Pagos extends StatefulWidget {
 }
 
 class _PagosState extends State<Pagos> {
-  Tarjeta? _selectedCard;
+  final TransaccionNfcService _transaccionService = TransaccionNfcService();
 
-  // RegisteredCards avisa la selección después de cada carga/recarga.
-  // Llega null cuando el cliente ya no tiene tarjetas.
+  Tarjeta? _selectedCard;
+  Map<String, dynamic>? _pendiente;
+  int _refreshTick = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _cargarPendiente();
+  }
+
+  Future<void> _cargarPendiente() async {
+    final resp = await _transaccionService.getEmergenciaPendiente(
+      widget.idCliente,
+    );
+    if (!mounted) return;
+    setState(() => _pendiente = resp);
+  }
+
+  void _onEmergenciaPagada() {
+    setState(() => _refreshTick++); // el carrusel recarga los saldos/tarjetas
+    _cargarPendiente();
+  }
+
   void _onSelectedCardChanged(Tarjeta? card) {
     if (!mounted) return;
     setState(() => _selectedCard = card);
@@ -33,15 +56,26 @@ class _PagosState extends State<Pagos> {
           child: Container(
             color: const Color(0xFFF6F7FB),
             child: ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
               children: [
-                // Acción NFC que usa la tarjeta seleccionada del carrusel
-                NfcPayment(
-                  idCliente: widget.idCliente,
-                  selectedTarjeta: _selectedCard,
-                ),
-                // Carrusel horizontal de tarjetas
+                // 1. Mostrar condicionalmente pago de emergencia o acción NFC
+                if (_pendiente != null)
+                  EmergencyPayment(
+                    idCliente: widget.idCliente,
+                    monto: _pendiente!['monto'],
+                    selectedTarjeta: _selectedCard,
+                    onPagado: _onEmergenciaPagada,
+                  )
+                else
+                  NfcPayment(
+                    idCliente: widget.idCliente,
+                    selectedTarjeta: _selectedCard,
+                    onDeudaPendiente: _cargarPendiente,
+                  ),
+
+                // 2. Carrusel horizontal de tarjetas registradas
                 RegisteredCards(
+                  key: ValueKey(_refreshTick),
                   idCliente: widget.idCliente,
                   onSelectedChanged: _onSelectedCardChanged,
                 ),

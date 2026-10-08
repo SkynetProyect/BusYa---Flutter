@@ -1,5 +1,5 @@
 // lib/model/PagoNfcResult.dart
-enum PagoNfcStatus { success, emergencySuccess, rejected, error }
+enum PagoNfcStatus { success, emergencySuccess, rejected, debtPending, error }
 
 class PagoNfcResult {
   final PagoNfcStatus status;
@@ -18,6 +18,7 @@ class PagoNfcResult {
       'SUCCESS' => PagoNfcStatus.success,
       'EMERGENCY_SUCCESS' => PagoNfcStatus.emergencySuccess,
       'REJECTED' => PagoNfcStatus.rejected,
+      'DEBT_PENDING' => PagoNfcStatus.debtPending,
       _ => PagoNfcStatus.error,
     };
     return PagoNfcResult(
@@ -33,4 +34,6 @@ class PagoNfcResult {
       status == PagoNfcStatus.emergencySuccess;
 
   bool get isEmergency => status == PagoNfcStatus.emergencySuccess;
+
+  bool get hasDebtPending => status == PagoNfcStatus.debtPending;
 }

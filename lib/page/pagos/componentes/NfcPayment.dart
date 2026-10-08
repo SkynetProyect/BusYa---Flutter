@@ -11,9 +11,14 @@ import '../../../service/determinePosition.dart';
 class NfcPayment extends StatefulWidget {
   final String idCliente;
   final Tarjeta? selectedTarjeta;
+  final VoidCallback? onDeudaPendiente;
 
-  const NfcPayment({super.key, required this.idCliente, this.selectedTarjeta});
-
+  const NfcPayment({
+    super.key,
+    required this.idCliente,
+    this.selectedTarjeta,
+    this.onDeudaPendiente,
+  });
   @override
   State<NfcPayment> createState() => _NfcPaymentState();
 }
@@ -91,6 +96,11 @@ class _NfcPaymentState extends State<NfcPayment> {
           break;
         case PagoNfcStatus.emergencySuccess:
           _mostrarDialogoExito(montoPasaje, esEmergencia: true);
+          break;
+        case PagoNfcStatus.debtPending:
+          _mostrarSnackBar(resultado.message);
+          widget.onDeudaPendiente
+              ?.call(); // Pagos recarga y cambia al botón de emergencia
           break;
         case PagoNfcStatus.rejected:
         case PagoNfcStatus.error:

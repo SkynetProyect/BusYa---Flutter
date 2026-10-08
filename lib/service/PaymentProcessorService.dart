@@ -12,6 +12,53 @@ class PaymentProcessorService {
 
   static const Duration _timeout = Duration(seconds: 60);
 
+  Future<({bool ok, String message})> pagarEmergencia({
+    required String idCliente,
+    required int idTarjeta,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/emergency/pay'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'idClient': idCliente, 'idCard': idTarjeta}),
+          )
+          .timeout(_timeout);
+
+      Map<String, dynamic>? data;
+      try {
+        data = jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (_) {}
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final ok = data?['status'] == 'EMERGENCY_PAID';
+        return (
+          ok: ok,
+          message:
+              (data?['message'] ?? (ok ? 'Pasaje pagado' : 'No se pudo pagar'))
+                  .toString(),
+        );
+      }
+
+      return (
+        ok: false,
+        message:
+            data?['message']?.toString() ??
+            'Error del servidor de pagos (${response.statusCode})',
+      );
+    } on TimeoutException {
+      return (
+        ok: false,
+        message: 'El servidor de pagos tardó demasiado. Intenta de nuevo.',
+      );
+    } catch (e) {
+      return (ok: false, message: 'No se pudo conectar con pagos: $e');
+    }
+  }
+
   Future<PagoNfcResult> procesarPagoNfc({
     required Map<String, dynamic> dataNfc,
     required Tarjeta tarjetaSeleccionada,

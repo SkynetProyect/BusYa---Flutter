@@ -9,6 +9,19 @@ class TransaccionNfcService extends SupabaseServiceBase {
       '*, tarjetas(marca, ultimos_cuatro_digitos), '
       'buses(id, id_ruta, rutas(nombre, precio_pasaje))';
 
+  Future<Map<String, dynamic>?> getEmergenciaPendiente(String idUsuario) =>
+      guard(() async {
+        return await supabase
+            .from('transacciones_nfc')
+            .select('id, monto')
+            .eq('id_usuario', idUsuario)
+            .eq('es_emergencia', true)
+            .eq('emergencia_pagada', false)
+            .order('fecha_transaccion')
+            .limit(1)
+            .maybeSingle();
+      });
+
   /// Historial completo del usuario
   Future<List<TransaccionNfc>> getHistorialPorUsuario(String idUsuario) =>
       guard(() async {
