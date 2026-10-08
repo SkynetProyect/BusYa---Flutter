@@ -79,20 +79,18 @@ class _Home extends State<Application> {
           },
         ),
       ),
-      body: Stack(
-        alignment: Alignment.bottomCenter,
-        children: [
-          pantalla[_selectedIndex],
-          BarraNavegacion(
-            selectedIndex: _selectedIndex,
-            callbackfunction: (numero) {
-              setState(() {
-                _selectedIndex = numero;
-              });
-              print(_selectedIndex);
-            },
-          ),
-        ],
+      body: SafeArea(bottom: false, child: pantalla[_selectedIndex]),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: BarraNavegacion(
+          selectedIndex: _selectedIndex,
+          callbackfunction: (numero) {
+            setState(() {
+              _selectedIndex = numero;
+            });
+            print(_selectedIndex);
+          },
+        ),
       ),
     );
   }
