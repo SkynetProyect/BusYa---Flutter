@@ -61,19 +61,34 @@ class _RegisterPageState extends State<RegisterPage> {
     final documento = _docCtrl.text.trim();
     final celular = _celularCtrl.text.trim();
 
-    if (!Validators.isNotEmpty(nombre) ||
-        !Validators.isNotEmpty(apellido) ||
-        !Validators.isNotEmpty(documento) ||
+    if (!Validators.isValidName(nombre)) {
+      _showSnackBar('El nombre debe tener entre 2 y 50 caracteres y usar solo letras.');
+      return;
+    }
+
+    if (!Validators.isValidName(apellido)) {
+      _showSnackBar('El apellido debe tener entre 2 y 50 caracteres y usar solo letras.');
+      return;
+    }
+
+    if (!Validators.isValidDocumentType(_idTipoDocumento)) {
+      _showSnackBar('Selecciona un tipo de documento válido');
+      return;
+    }
+
+    if (!Validators.isNotEmpty(documento) ||
         !Validators.isNotEmpty(celular) ||
         !Validators.isNotEmpty(email) ||
-        !Validators.isNotEmpty(password) ||
-        _idTipoDocumento == null) {
+        !Validators.isNotEmpty(password)) {
       _showSnackBar('Por favor completa todos los campos obligatorios');
       return;
     }
 
-    if (!Validators.isValidDocument(documento)) {
-      _showSnackBar('El número de documento debe tener entre 6 y 10 dígitos');
+    if (!Validators.isValidDocument(
+      documento,
+      documentTypeId: _idTipoDocumento,
+    )) {
+      _showSnackBar('El documento no tiene un formato válido para el tipo seleccionado');
       return;
     }
 
