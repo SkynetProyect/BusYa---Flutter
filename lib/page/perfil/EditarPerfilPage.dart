@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Usuario.dart';
 import 'package:flutter_application_1/service/rest/usuario/UsuarioService.dart';
+import 'package:flutter_application_1/core/utils/perfil_validators.dart';
 import 'package:flutter_application_1/widget/custombutton/custom_button.dart';
 import 'package:flutter_application_1/widget/customtextfield/custom_text_field.dart';
 
@@ -45,6 +47,7 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
     _nombreController.dispose();
     _apellidoController.dispose();
     _celularController.dispose();
+
     super.dispose();
   }
 
@@ -53,18 +56,27 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
     final apellido = _apellidoController.text.trim();
     final celular = _celularController.text.trim();
 
-    if (nombre.isEmpty) {
-      _showSnackBar('Por favor ingresa tu nombre');
+    // Validar nombre
+    final errorNombre = PerfilValidators.validarNombre(nombre);
+
+    if (errorNombre != null) {
+      _showSnackBar(errorNombre);
       return;
     }
 
-    if (apellido.isEmpty) {
-      _showSnackBar('Por favor ingresa tu apellido');
+    // Validar apellido
+    final errorApellido = PerfilValidators.validarApellido(apellido);
+
+    if (errorApellido != null) {
+      _showSnackBar(errorApellido);
       return;
     }
 
-    if (celular.isEmpty) {
-      _showSnackBar('Por favor ingresa tu celular');
+    // Validar celular
+    final errorCelular = PerfilValidators.validarCelular(celular);
+
+    if (errorCelular != null) {
+      _showSnackBar(errorCelular);
       return;
     }
 
@@ -110,6 +122,7 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7FB),
+
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -122,6 +135,7 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
           style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold),
         ),
       ),
+
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -132,6 +146,7 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: const Color(0xFFEBECEF)),
             ),
+
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -143,40 +158,63 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
                     color: darkPurple,
                   ),
                 ),
+
                 const SizedBox(height: 8),
+
                 const Text(
                   'Actualiza los datos que deseas modificar de tu perfil.',
                   style: TextStyle(color: Colors.black54, fontSize: 14),
                 ),
+
                 const SizedBox(height: 20),
 
+                // NOMBRE
                 CustomTextField(
                   controller: _nombreController,
                   label: 'Nombre',
                   icon: Icons.person_outline,
                   keyboardType: TextInputType.name,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]'),
+                    ),
+                    LengthLimitingTextInputFormatter(50),
+                  ],
                 ),
 
                 const SizedBox(height: 16),
 
+                // APELLIDO
                 CustomTextField(
                   controller: _apellidoController,
                   label: 'Apellido',
                   icon: Icons.person_outline,
                   keyboardType: TextInputType.name,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s]'),
+                    ),
+                    LengthLimitingTextInputFormatter(50),
+                  ],
                 ),
 
                 const SizedBox(height: 16),
 
+                // CELULAR
                 CustomTextField(
                   controller: _celularController,
                   label: 'Celular',
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
                 ),
 
                 const SizedBox(height: 24),
 
+                // BOTÓN
                 CustomButton(
                   text: 'Guardar Cambios',
                   isLoading: _isLoading,

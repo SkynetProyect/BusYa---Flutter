@@ -51,47 +51,53 @@ class PerfilAccionesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
+    return Material(
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEBECEF)),
+        side: const BorderSide(color: Color(0xFFEBECEF)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Cuenta',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Cuenta',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
-          ),
 
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
 
-          _accion(
-            icon: Icons.lock_outline,
-            title: 'Cambiar contraseña',
-            onTap: onChangePassword,
-          ),
+            _accion(
+              icon: Icons.lock_outline,
+              title: 'Cambiar contraseña',
+              onTap: onChangePassword,
+            ),
 
-          const Divider(height: 1, color: Color(0xFFEBECEF)),
+            const Divider(height: 1, color: Color(0xFFEBECEF)),
 
-          _accion(icon: Icons.logout, title: 'Cerrar sesión', onTap: onLogout),
+            _accion(
+              icon: Icons.logout,
+              title: 'Cerrar sesión',
+              onTap: onLogout,
+            ),
 
-          const Divider(height: 1, color: Color(0xFFEBECEF)),
+            const Divider(height: 1, color: Color(0xFFEBECEF)),
 
-          _accion(
-            icon: Icons.delete_outline,
-            title: 'Eliminar cuenta',
-            color: Colors.red,
-            onTap: onDeleteAccount,
-          ),
-        ],
+            _accion(
+              icon: Icons.delete_outline,
+              title: 'Eliminar cuenta',
+              color: Colors.red,
+              onTap: onDeleteAccount,
+            ),
+          ],
+        ),
       ),
     );
   }
