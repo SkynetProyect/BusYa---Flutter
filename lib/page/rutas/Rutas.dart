@@ -7,6 +7,9 @@ import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart'
     show EmpresaService;
 import 'package:flutter_application_1/service/rest/ruta/RutaService.dart'
     show RutaService;
+import 'package:flutter_application_1/service/rest/ruta_favorita/RutaFavoritaService.dart'
+    show RutaFavoritaService;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Rutas extends StatefulWidget {
   const Rutas({super.key});
@@ -18,10 +21,13 @@ class Rutas extends StatefulWidget {
 class _RutasState extends State<Rutas> {
   final RutaService _rutaService = RutaService();
   final EmpresaService _empresaService = EmpresaService();
+  final RutaFavoritaService _rutaFavoritaService = RutaFavoritaService();
 
   List<Ruta> _rutas = [];
   List<Ruta> _rutasFiltradas = [];
   Map<int, String> _empresasPorId = {};
+  Map<int, int> _viajesPorRuta = {}; // {idRuta: veces tomada}
+
   bool _loading = true;
   final TextEditingController _searchController = TextEditingController();
 
@@ -45,6 +51,34 @@ class _RutasState extends State<Rutas> {
     super.dispose();
   }
 
+  Future<Map<int, int>> _cargarViajes() async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return {};
+
+    try {
+      final favoritas = await _rutaFavoritaService.getByUsuarioId(userId);
+      final conteo = <int, int>{};
+      for (final f in favoritas) {
+        final id = f.idRuta;
+        if (id != null) conteo[id] = (conteo[id] ?? 0) + 1;
+      }
+      return conteo;
+    } catch (_) {
+      return {}; // si falla, la lista de rutas se muestra igual
+    }
+  }
+
+  List<Ruta> _ordenarPorViajes(List<Ruta> rutas) {
+    final copia = [...rutas];
+    copia.sort((a, b) {
+      final va = _viajesPorRuta[a.id] ?? 0;
+      final vb = _viajesPorRuta[b.id] ?? 0;
+      if (vb != va) return vb.compareTo(va);
+      return a.nombre.compareTo(b.nombre);
+    });
+    return copia;
+  }
+
   Future<void> _cargarDatos() async {
     setState(() => _loading = true);
     try {
@@ -52,14 +86,18 @@ class _RutasState extends State<Rutas> {
       final results = await Future.wait([
         _rutaService.getAll(),
         _empresaService.getAll(),
+        _cargarViajes(),
       ]);
 
       final rutas = results[0] as List<Ruta>;
       final empresas = results[1] as List<Empresa>;
+      final viajes = results[2] as Map<int, int>;
 
+      if (!mounted) return;
       setState(() {
-        _rutas = rutas;
-        _rutasFiltradas = rutas;
+        _viajesPorRuta = viajes;
+        _rutas = _ordenarPorViajes(rutas);
+        _rutasFiltradas = _rutas;
         _empresasPorId = {
           for (final e in empresas)
             if (e.id != null) e.id!: e.nombre,
@@ -76,14 +114,14 @@ class _RutasState extends State<Rutas> {
     final query = _searchController.text.toLowerCase().trim();
     setState(() {
       if (query.isEmpty) {
-        _rutasFiltradas = _rutas;
+        _rutasFiltradas = _rutas; // ya viene ordenada
       } else {
         _rutasFiltradas = _rutas.where((r) {
           final nombreEmpresa = (_empresasPorId[r.idEmpresa] ?? '')
               .toLowerCase();
           return r.nombre.toLowerCase().contains(query) ||
               nombreEmpresa.contains(query);
-        }).toList();
+        }).toList(); // filtrar conserva el orden de _rutas
       }
     });
   }
@@ -143,6 +181,7 @@ class _RutasState extends State<Rutas> {
                                 precioTexto: _precioFormateado(
                                   ruta.precioPasaje,
                                 ),
+                                viajes: _viajesPorRuta[ruta.id] ?? 0,
                                 onTap: () {
                                   // TODO: navegar a detalle / mapa de la ruta
                                 },
@@ -195,6 +234,7 @@ class _RutaCard extends StatelessWidget {
   final String? nombreEmpresa;
   final String precioTexto;
   final VoidCallback onTap;
+  final int viajes;
 
   const _RutaCard({
     required this.ruta,
@@ -202,6 +242,7 @@ class _RutaCard extends StatelessWidget {
     required this.codigo,
     required this.nombreEmpresa,
     required this.precioTexto,
+    required this.viajes,
     required this.onTap,
   });
 
@@ -267,9 +308,10 @@ class _RutaCard extends StatelessWidget {
   }
 
   String _subtitulo() {
-    if (nombreEmpresa != null && nombreEmpresa!.isNotEmpty) {
-      return '$nombreEmpresa · $precioTexto';
-    }
-    return precioTexto;
+    final base = (nombreEmpresa != null && nombreEmpresa!.isNotEmpty)
+        ? '$nombreEmpresa · $precioTexto'
+        : precioTexto;
+    if (viajes == 0) return base;
+    return '$base · $viajes ${viajes == 1 ? 'viaje' : 'viajes'}';
   }
 }

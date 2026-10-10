@@ -57,10 +57,11 @@ class BarraNavegacion extends StatelessWidget {
               selectedIndex: selectedIndex,
               callbackfunction: callbackfunction,
             ),
+            /*
             IconoHistorial(
               selectedIndex: selectedIndex,
               callbackfunction: callbackfunction,
-            ),
+            ),*/
             IconoPerfil(
               selectedIndex: selectedIndex,
               callbackfunction: callbackfunction,

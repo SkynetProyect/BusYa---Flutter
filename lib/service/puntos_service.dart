@@ -18,16 +18,17 @@ class PuntosService {
     return data['puntos_eco'] as int;
   }
 
-  // Incrementa 1 punto tras validar un abordaje
-  Future<void> sumarPuntoPorViaje() async {
+  // Increments 1 point atomically after a successful purchase.
+  // Returns the new balance, or null if it could not be saved.
+  Future<int?> sumarPuntoPorViaje() async {
     final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    if (user == null) return null;
 
-    final puntosActuales = await obtenerPuntos();
-
-    await _supabase
-        .from('usuarios')
-        .update({'puntos_eco': puntosActuales + 1})
-        .eq('id', user.id);
+    try {
+      final nuevo = await _supabase.rpc('sumar_punto_eco');
+      return nuevo as int?;
+    } catch (_) {
+      return null; // never block the payment because of points
+    }
   }
 }

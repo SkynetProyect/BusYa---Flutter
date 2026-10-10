@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
+import 'package:flutter_application_1/model/RutaFavorita.dart'
+    show RutaFavorita;
+import 'package:flutter_application_1/service/puntos_service.dart';
+import 'package:flutter_application_1/service/rest/ruta_favorita/RutaFavoritaService.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../model/Tarjeta.dart';
 import '../../../model/PagoNfcResult.dart';
@@ -26,8 +30,9 @@ class NfcPayment extends StatefulWidget {
 class _NfcPaymentState extends State<NfcPayment> {
   static const darkPurple = AppColors.primary;
   static const greenPrimary = AppColors.primary;
-
   final _paymentService = PaymentProcessorService();
+  final _puntosService = PuntosService();
+  final _rutaFavoritaService = RutaFavoritaService();
 
   Tarjeta? _tarjetaSeleccionada;
   bool _isProcessing = false;
@@ -86,9 +91,26 @@ class _NfcPaymentState extends State<NfcPayment> {
         longitud: position?.longitude,
       );
 
-      if (!mounted) return;
-
       final double montoPasaje = (dataNfc['tarifa'] ?? 3207).toDouble();
+
+      // El pago ya se hizo: sumamos el punto aunque el widget se haya desmontado.
+      if (resultado.status == PagoNfcStatus.success ||
+          resultado.status == PagoNfcStatus.emergencySuccess) {
+        await _puntosService.sumarPuntoPorViaje();
+
+        try {
+          await _rutaFavoritaService.create(
+            RutaFavorita(
+              idUsuario: widget.idCliente,
+              idRuta: int.tryParse('${dataNfc['id_ruta']}'),
+            ),
+          );
+        } catch (_) {
+          // El pago ya se hizo; si esto falla, no se rompe el flujo.
+        }
+      }
+
+      if (!mounted) return;
 
       switch (resultado.status) {
         case PagoNfcStatus.success:
