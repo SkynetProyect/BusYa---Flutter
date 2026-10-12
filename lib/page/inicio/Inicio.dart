@@ -1,13 +1,30 @@
-import 'package:audioplayers/audioplayers.dart' show AudioPlayer, AssetSource;
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/model/Bus.dart' show Bus;
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
+import 'package:flutter_application_1/page/inicio/alerts/BusProximityAlertService.dart'
+    show BusProximityAlertService;
+import 'package:flutter_application_1/page/inicio/componentes/BusInfoSheet.dart'
+    show BusInfoSheet;
+import 'package:flutter_application_1/page/inicio/componentes/BusMarkerIcon.dart';
+import 'package:flutter_application_1/page/inicio/componentes/OccupancyFormater.dart'
+    show OccupancyFormatter;
+import 'package:flutter_application_1/page/inicio/componentes/PeriodicPooler.dart'
+    show PeriodicPoller;
+import 'package:flutter_application_1/page/inicio/componentes/PolylineDecoder.dart'
+    show PolylineDecoder;
+import 'package:flutter_application_1/page/inicio/componentes/RouteSelectorBar.dart';
 import 'package:flutter_application_1/page/inicio/componentes/TopBar.dart';
+import 'package:flutter_application_1/page/inicio/componentes/UserLocationMaker.dart'
+    show UserLocationMarker;
+import 'package:flutter_application_1/page/inicio/persistence/SelectionStorageService.dart'
+    show SelectionStorageService;
+import 'package:flutter_application_1/service/CompassService.dart'
+    show CompassService;
 import 'package:flutter_application_1/service/determinePosition.dart'
     show determinePosition;
-import 'package:flutter_application_1/service/notification_service.dart'
-    show NotificationService;
-
 import 'package:flutter_application_1/service/rest/bus/BusService.dart'
     show BusService;
 import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart'
@@ -17,12 +34,9 @@ import 'package:flutter_application_1/service/rest/ruta/RutaService.dart'
 import 'package:flutter_map/flutter_map.dart' as flutter_map;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' as latlong;
-import 'package:flutter_application_1/model/Bus.dart' show Bus;
-import 'package:flutter_application_1/page/inicio/componentes/BusInfoSheet.dart'
-    show BusInfoSheet;
 
-import 'dart:async';
-
+/// Pantalla principal: mapa con ruta seleccionada, buses en tiempo real,
+/// ubicación/orientación del usuario y alertas de proximidad.
 class Inicio extends StatefulWidget {
   const Inicio({super.key});
 
@@ -31,68 +45,77 @@ class Inicio extends StatefulWidget {
 }
 
 class _InicioState extends State<Inicio> with WidgetsBindingObserver {
+  // ───────────── Constantes
+  static const Duration _busPollInterval = Duration(seconds: 2);
+  static const latlong.LatLng _defaultCenter = latlong.LatLng(6.2442, -75.5812);
+
+  // ───────────── Servicios (cada uno con una única responsabilidad)
   final RutaService _rutaService = RutaService();
   final EmpresaService _empresaService = EmpresaService();
   final BusService _busService = BusService();
+  final SelectionStorageService _selectionStorage = SelectionStorageService();
+  final CompassService _compass = CompassService();
+  final BusProximityAlertService _alertService = BusProximityAlertService();
+  final PeriodicPoller _busPoller = PeriodicPoller();
 
   final flutter_map.MapController _mapController = flutter_map.MapController();
 
+  // ───────────── Estado de selección
   List<Empresa> _empresas = [];
   List<Ruta> _rutasDeEmpresa = [];
-
   Empresa? _empresaSeleccionada;
   Ruta? _rutaSeleccionada;
-
-  List<flutter_map.Polyline> _polylines = [];
-  List<flutter_map.Marker> _busMarkers = [];
-
   bool _loadingSelectores = true;
   String? _selectorError;
-  Timer? _busTimer;
+
+  // ───────────── Estado del mapa
+  List<flutter_map.Polyline> _polylines = [];
+  List<flutter_map.Marker> _busMarkers = [];
   bool _busRequestInFlight = false;
+
+  // ───────────── Estado de ubicación
   StreamSubscription<Position>? _positionSubscription;
   latlong.LatLng? _userPosition;
   bool _centerOnUserLocation = true;
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  final Set<int> _busesAlertados =
-      {}; // ids de buses ya alertados en este acercamiento
-  static const double _distanciaAlertaMetros = 1000; // ajusta según necesites
+  // ═══════════════════════ Ciclo de vida ═══════════════════════
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _cargarEmpresas();
+    _cargarSelectores(); // Carga empresas y restaura la selección guardada.
     _cargarUbicacion();
+    _iniciarBrujula();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _busTimer?.cancel();
+    _busPoller.stop();
     _positionSubscription?.cancel();
-    _audioPlayer.dispose();
+    _compass.dispose();
+    _alertService.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
+  /// Pausa/reanuda sensores y polling según el estado de la app.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
-        _busTimer?.cancel();
-        _busTimer = null;
+        _busPoller.stop();
         _positionSubscription?.pause();
+        _compass.pause();
         break;
       case AppLifecycleState.resumed:
         _positionSubscription?.resume();
-        if (_rutaSeleccionada != null && _busTimer == null) {
-          _actualizarBuses(); // refresca inmediatamente al volver
-          _busTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-            _actualizarBuses();
-          });
+        _compass.resume();
+        if (_rutaSeleccionada != null && !_busPoller.isRunning) {
+          _iniciarPollingBuses(refrescarYa: true);
         }
         break;
       case AppLifecycleState.hidden:
@@ -100,19 +123,18 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  double _distanciaMetros(latlong.LatLng a, latlong.LatLng b) {
-    const distance = latlong.Distance();
-    return distance.as(latlong.LengthUnit.Meter, a, b);
-  }
-
-  Future<void> _reproducirAlerta() async {
+  /// Inicia la brújula; si falla o no existe, la app sigue funcionando.
+  void _iniciarBrujula() {
     try {
-      await _audioPlayer.play(AssetSource('sounds/bus_alert.mp3'));
-    } catch (_) {
-      // si falla el audio no debe romper la app
+      _compass.start();
+    } catch (e) {
+      debugPrint('[COMPASS] no se pudo iniciar: $e');
     }
   }
 
+  // ═══════════════════════ Ubicación ═══════════════════════
+
+  /// Obtiene la posición inicial y se suscribe a los cambios.
   Future<void> _cargarUbicacion() async {
     try {
       final position = await determinePosition();
@@ -126,20 +148,18 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
             ),
           ).listen(
             _actualizarUbicacion,
-            onError: (error) {
-              debugPrint('[LOCATION DEBUG] stream error: $error');
-              // no relanzamos, simplemente lo ignoramos para no romper la UI
-            },
+            onError: (e) => debugPrint('[LOCATION] stream error: $e'),
             cancelOnError: false,
           );
     } catch (_) {
-      // La pantalla sigue funcionando aunque el usuario no conceda ubicación.
+      // La pantalla sigue funcionando sin permiso de ubicación.
     }
   }
 
+  /// Guarda la posición del usuario y centra el mapa la primera vez
+  /// (salvo que ya haya una ruta encuadrada).
   void _actualizarUbicacion(Position position) {
     if (!mounted) return;
-
     final location = latlong.LatLng(position.latitude, position.longitude);
     setState(() => _userPosition = location);
 
@@ -149,7 +169,10 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _cargarEmpresas() async {
+  // ═══════════════════════ Selección Empresa / Ruta ═══════════════════════
+
+  /// Carga empresas y luego restaura la última selección persistida.
+  Future<void> _cargarSelectores() async {
     try {
       final empresas = await _empresaService.getAll();
       if (!mounted) return;
@@ -157,6 +180,7 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
         _empresas = empresas;
         _selectorError = null;
       });
+      await _restaurarSeleccion();
     } catch (error) {
       if (!mounted) return;
       setState(() => _selectorError = error.toString());
@@ -165,21 +189,70 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _onEmpresaSeleccionada(Empresa? empresa) async {
-    _busTimer?.cancel();
+  /// Reaplica la Empresa/Ruta guardadas (si siguen existiendo).
+  Future<void> _restaurarSeleccion() async {
+    try {
+      final saved = await _selectionStorage.load();
+      debugPrint('[SELECTION] restaurando: $saved');
+      if (saved.empresaId == null) return;
+
+      final empresa = _empresas
+          .where((e) => e.id == saved.empresaId)
+          .firstOrNull;
+      if (empresa == null) {
+        debugPrint('[SELECTION] empresa ${saved.empresaId} no existe en lista');
+        return;
+      }
+
+      await _seleccionarEmpresa(empresa, persistir: false);
+      if (!mounted || saved.rutaId == null) return;
+
+      final ruta = _rutasDeEmpresa
+          .where((r) => r.id == saved.rutaId)
+          .firstOrNull;
+      if (ruta == null) {
+        debugPrint('[SELECTION] ruta ${saved.rutaId} no existe en lista');
+        return;
+      }
+
+      await _seleccionarRuta(ruta, persistir: false);
+    } catch (e) {
+      // Un fallo al restaurar nunca debe mostrar el error de carga.
+      debugPrint('[SELECTION] error restaurando: $e');
+    }
+  }
+
+  /// Persiste la selección actual.
+  Future<void> _guardarSeleccion() => _selectionStorage.save(
+    empresaId: _empresaSeleccionada?.id,
+    rutaId: _rutaSeleccionada?.id,
+  );
+
+  /// Acción del usuario sobre el dropdown de empresa.
+  Future<void> _onEmpresaSeleccionada(Empresa? empresa) =>
+      _seleccionarEmpresa(empresa);
+
+  /// Acción del usuario sobre el dropdown de ruta.
+  Future<void> _onRutaSeleccionada(Ruta? ruta) => _seleccionarRuta(ruta);
+
+  /// Selecciona una empresa, limpia el mapa y carga sus rutas.
+  Future<void> _seleccionarEmpresa(
+    Empresa? empresa, {
+    bool persistir = true,
+  }) async {
+    _detenerPollingBuses();
     setState(() {
       _empresaSeleccionada = empresa;
       _rutaSeleccionada = null;
       _rutasDeEmpresa = [];
-      _polylines.clear();
-      _busMarkers.clear();
+      _limpiarMapa();
     });
+    if (persistir) await _guardarSeleccion();
 
     if (empresa?.id == null) return;
-
     try {
       final rutas = await _rutaService.getByEmpresaId(empresa!.id!);
-      if (!mounted) return;
+      if (!mounted || _empresaSeleccionada?.id != empresa.id) return;
       setState(() => _rutasDeEmpresa = rutas);
     } catch (_) {
       if (!mounted) return;
@@ -187,34 +260,42 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _onRutaSeleccionada(Ruta? ruta) async {
-    _busTimer?.cancel();
+  /// Selecciona una ruta: dibuja su trazado e inicia el seguimiento de buses.
+  Future<void> _seleccionarRuta(Ruta? ruta, {bool persistir = true}) async {
+    _detenerPollingBuses();
+    _alertService.reset();
     setState(() {
       _rutaSeleccionada = ruta;
-      _polylines.clear();
-      _busMarkers.clear();
+      _limpiarMapa();
     });
-
+    if (persistir) await _guardarSeleccion();
     if (ruta == null) return;
 
-    debugPrint(
-      '[ROUTE DEBUG] selected route -> id=${ruta.id}, idEmpresa=${ruta.idEmpresa}, nombre=${ruta.nombre}, precio=${ruta.precioPasaje}, polylineLength=${ruta.encodedPolyline?.length ?? 0}',
-    );
-
     _dibujarPolyline(ruta);
-    await _actualizarBuses(); // primera carga inmediata
+    await _actualizarBuses(); // Primera carga inmediata.
     if (!mounted || _rutaSeleccionada?.id != ruta.id) return;
 
-    _busTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-      _actualizarBuses();
-    });
+    _iniciarPollingBuses();
   }
 
-  void _dibujarPolyline(Ruta ruta) {
-    if (ruta.encodedPolyline == null || ruta.encodedPolyline!.isEmpty) return;
+  /// Borra polylines y marcadores de buses del mapa.
+  void _limpiarMapa() {
+    _polylines = [];
+    _busMarkers = [];
+  }
 
-    final points = _decodePolyline(ruta.encodedPolyline!);
+  // ═══════════════════════ Mapa: ruta y buses ═══════════════════════
+
+  /// Dibuja el trazado de la ruta y encuadra la cámara sobre él.
+  void _dibujarPolyline(Ruta ruta) {
+    final encoded = ruta.encodedPolyline;
+    if (encoded == null || encoded.isEmpty) return;
+
+    final points = PolylineDecoder.decode(encoded);
     if (points.isEmpty) return;
+
+    // La ruta tiene prioridad sobre el centrado inicial en el usuario.
+    _centerOnUserLocation = false;
 
     setState(() {
       _polylines = [
@@ -225,10 +306,31 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
         ),
       ];
     });
-
     _ajustarCamara(points);
   }
 
+  /// Encuadra la cámara para mostrar todos los [points].
+  Future<void> _ajustarCamara(List<latlong.LatLng> points) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (!mounted) return;
+    _mapController.fitCamera(
+      flutter_map.CameraFit.bounds(
+        bounds: flutter_map.LatLngBounds.fromPoints(points),
+        padding: const EdgeInsets.all(60),
+      ),
+    );
+  }
+
+  /// Inicia el polling periódico de buses.
+  void _iniciarPollingBuses({bool refrescarYa = false}) {
+    if (refrescarYa) _actualizarBuses();
+    _busPoller.start(_busPollInterval, _actualizarBuses);
+  }
+
+  /// Detiene el polling de buses.
+  void _detenerPollingBuses() => _busPoller.stop();
+
+  /// Consulta los buses de la ruta activa, evalúa alertas y refresca marcadores.
   Future<void> _actualizarBuses() async {
     if (!mounted) return;
     final routeId = _rutaSeleccionada?.id;
@@ -239,201 +341,81 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
       final buses = await _busService.getByRutaId(routeId);
       if (!mounted || _rutaSeleccionada?.id != routeId) return;
 
-      final nuevosMarkers = <flutter_map.Marker>[];
-      final busesActualesIds = <int>{};
+      final markers = <flutter_map.Marker>[];
+      final activeIds = <int>{};
 
       for (final bus in buses) {
         if (bus.latitudActual == null || bus.longitudActual == null) continue;
-
         final busPos = latlong.LatLng(bus.latitudActual!, bus.longitudActual!);
-        if (bus.id != null) busesActualesIds.add(bus.id!);
-        // --- Alerta de proximidad ---
-        if (bus.id != null && _userPosition != null) {
-          final distancia = _distanciaMetros(_userPosition!, busPos);
-          final yaAlertado = _busesAlertados.contains(bus.id);
+        if (bus.id != null) activeIds.add(bus.id!);
 
-          if (distancia <= _distanciaAlertaMetros && !yaAlertado) {
-            _busesAlertados.add(bus.id!);
-            _reproducirAlerta();
-
-            NotificationService().mostrarNotificacion(
-              id: bus.id!,
-              titulo: 'Bus cerca de ti',
-              cuerpo:
-                  'El bus ${bus.placa} está a menos de ${_distanciaAlertaMetros.toInt()} metros',
-            );
-
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('El bus ${bus.placa} está cerca de ti'),
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            }
-          } else if (distancia > _distanciaAlertaMetros && yaAlertado) {
-            // si se aleja de nuevo, permite re-alertar en un futuro acercamiento
-            _busesAlertados.remove(bus.id);
-          }
-        }
-
-        nuevosMarkers.add(
-          flutter_map.Marker(
-            point: busPos,
-            width: 44,
-            height: 44,
-            child: GestureDetector(
-              onTap: () => _showBusInfo(bus),
-              child: Tooltip(
-                message:
-                    '${bus.placa}: ${_textoPorcentaje(bus.nivelOcupacion)}',
-                child: Icon(
-                  Icons.directions_bus,
-                  color: _colorDeOcupacion(bus.nivelOcupacion),
-                  size: 30,
-                ),
-              ),
-            ),
-          ),
-        );
+        _evaluarAlerta(bus, busPos);
+        markers.add(_construirMarkerBus(bus, busPos));
       }
 
-      // limpia alertas de buses que ya no están en la ruta
-      _busesAlertados.removeWhere((id) => !busesActualesIds.contains(id));
-
-      if (!mounted) return;
-      setState(() {
-        _busMarkers = nuevosMarkers;
-      });
+      _alertService.retainOnly(activeIds);
+      setState(() => _busMarkers = markers);
     } catch (_) {
-      // si falla una actualización puntual, no interrumpimos el polling
+      // Un fallo puntual no debe interrumpir el polling.
     } finally {
       _busRequestInFlight = false;
     }
   }
 
-  void _showBusInfo(Bus bus) {
+  /// Evalúa proximidad del bus y muestra el aviso en pantalla si aplica.
+  void _evaluarAlerta(Bus bus, latlong.LatLng busPos) {
+    final user = _userPosition;
+    if (user == null) return;
+
+    if (_alertService.evaluate(bus, busPos, user) && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('El bus ${bus.placa} está cerca de ti'),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  /// Crea el marcador de un bus.
+  flutter_map.Marker _construirMarkerBus(Bus bus, latlong.LatLng pos) {
+    return flutter_map.Marker(
+      point: pos,
+      width: 44,
+      height: 44,
+      child: BusMarkerIcon(bus: bus, onTap: () => _mostrarInfoBus(bus)),
+    );
+  }
+
+  /// Marcador del usuario (flecha con brújula o punto sin ella).
+  flutter_map.Marker _construirMarkerUsuario(latlong.LatLng pos) {
+    return flutter_map.Marker(
+      point: pos,
+      width: 44,
+      height: 44,
+      child: UserLocationMarker(heading: _compass.heading),
+    );
+  }
+
+  /// Muestra el detalle del bus en un bottom sheet.
+  void _mostrarInfoBus(Bus bus) {
     if (!mounted) return;
-    final color = _colorDeOcupacion(bus.nivelOcupacion);
-    final ocupacion = _textoPorcentaje(bus.nivelOcupacion);
     showModalBottomSheet(
       context: context,
       isScrollControlled: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (ctx) => BusInfoSheet(
+      builder: (_) => BusInfoSheet(
         bus: bus,
-        markerColor: color,
-        ocupacionTexto: ocupacion,
+        markerColor: OccupancyFormatter.color(bus.nivelOcupacion),
+        ocupacionTexto: OccupancyFormatter.label(bus.nivelOcupacion),
         rutaNombre: _rutaSeleccionada?.nombre,
       ),
     );
   }
 
-  String _textoPorcentaje(String? nivel) {
-    final parsed = _parseOccupancyRatio(nivel);
-    if (parsed != null) {
-      if (parsed > 0.8) return 'Lleno';
-      if (parsed > 0.6) return 'Moderado';
-      return 'Vacío';
-    }
-
-    switch (nivel?.toUpperCase()) {
-      case 'ROJO':
-        return 'Lleno';
-      case 'NARANJA':
-        return 'Moderado';
-      case 'VERDE':
-      default:
-        return 'Vacío';
-    }
-  }
-
-  Color _colorDeOcupacion(String? nivel) {
-    final parsed = _parseOccupancyRatio(nivel);
-    if (parsed != null) {
-      if (parsed > 0.8) return Colors.red;
-      if (parsed > 0.6) return Colors.orange;
-      return Colors.green;
-    }
-
-    switch (nivel?.toUpperCase()) {
-      case 'ROJO':
-        return Colors.red;
-      case 'NARANJA':
-        return Colors.orange;
-      case 'VERDE':
-      default:
-        return Colors.green;
-    }
-  }
-
-  // Intenta extraer un ratio [0..1] a partir de una cadena como
-  // "50%", "0.5", "75 %", etc. Devuelve null si no es interpretable.
-  double? _parseOccupancyRatio(String? raw) {
-    if (raw == null) return null;
-    final s = raw.trim();
-    if (s.isEmpty) return null;
-
-    // Si contiene un número, extraerlo
-    final numberMatch = RegExp(r"([0-9]+(?:[.,][0-9]+)?)").firstMatch(s);
-    if (numberMatch == null) return null;
-    final numStr = numberMatch.group(1)!.replaceAll(',', '.');
-    final value = double.tryParse(numStr);
-    if (value == null) return null;
-
-    // Si hay un porcentaje explícito, interpretarlo como 0..100
-    if (s.contains('%')) {
-      return (value.clamp(0, 100)) / 100.0;
-    }
-
-    // Sin %, si el valor está en 0..1, tómalo como ratio; si > 1, asume porcentaje 0..100
-    if (value <= 1.0) return value.clamp(0.0, 1.0);
-    return (value.clamp(0.0, 100.0)) / 100.0;
-  }
-
-  Future<void> _ajustarCamara(List<latlong.LatLng> points) async {
-    if (points.isEmpty) return;
-
-    await Future.delayed(const Duration(milliseconds: 200));
-    _mapController.fitCamera(
-      flutter_map.CameraFit.bounds(
-        bounds: flutter_map.LatLngBounds.fromPoints(points),
-        padding: const EdgeInsets.all(60),
-      ),
-    );
-  }
-
-  List<latlong.LatLng> _decodePolyline(String encoded) {
-    List<latlong.LatLng> points = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-
-    while (index < len) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlat = ((result & 1) != 0) ? ~(result >> 1) : (result >> 1);
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlng = ((result & 1) != 0) ? ~(result >> 1) : (result >> 1);
-      lng += dlng;
-
-      points.add(latlong.LatLng(lat / 1e5, lng / 1e5));
-    }
-    return points;
-  }
+  // ═══════════════════════ UI ═══════════════════════
 
   @override
   Widget build(BuildContext context) {
@@ -443,52 +425,28 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
         Expanded(
           child: Stack(
             children: [
-              flutter_map.FlutterMap(
-                mapController: _mapController,
-                options: const flutter_map.MapOptions(
-                  initialCenter: latlong.LatLng(6.2442, -75.5812),
-                  initialZoom: 12,
-                ),
-                children: [
-                  flutter_map.TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.example.flutter_application_1',
-                  ),
-                  flutter_map.PolylineLayer(polylines: _polylines),
-                  flutter_map.MarkerLayer(
-                    markers: [
-                      ..._busMarkers,
-                      if (_userPosition != null)
-                        flutter_map.Marker(
-                          point: _userPosition!,
-                          width: 28,
-                          height: 28,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.blue,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 3),
-                              boxShadow: const [
-                                BoxShadow(color: Colors.black38, blurRadius: 4),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const flutter_map.RichAttributionWidget(
-                    attributions: [
-                      flutter_map.TextSourceAttribution('OpenStreetMap'),
-                    ],
-                  ),
-                ],
-              ),
+              _buildMap(),
               Positioned(
                 top: 12,
                 left: 12,
                 right: 12,
-                child: _buildSelectores(),
+                child: RouteSelectorBar(
+                  loading: _loadingSelectores,
+                  error: _selectorError,
+                  empresas: _empresas,
+                  rutas: _rutasDeEmpresa,
+                  empresaSeleccionada: _empresaSeleccionada,
+                  rutaSeleccionada: _rutaSeleccionada,
+                  onEmpresaChanged: _onEmpresaSeleccionada,
+                  onRutaChanged: _onRutaSeleccionada,
+                  onRetry: () {
+                    setState(() {
+                      _loadingSelectores = true;
+                      _selectorError = null;
+                    });
+                    _cargarSelectores();
+                  },
+                ),
               ),
             ],
           ),
@@ -497,105 +455,30 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildSelectores() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+  /// Mapa con tiles, ruta, buses y marcador del usuario.
+  Widget _buildMap() {
+    return flutter_map.FlutterMap(
+      mapController: _mapController,
+      options: const flutter_map.MapOptions(
+        initialCenter: _defaultCenter,
+        initialZoom: 12,
       ),
-      child: _loadingSelectores
-          ? const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: LinearProgressIndicator(),
-            )
-          : _selectorError != null
-          ? Row(
-              children: [
-                const Expanded(
-                  child: Text('No se pudieron cargar empresas y rutas'),
-                ),
-                IconButton(
-                  tooltip: 'Reintentar',
-                  onPressed: () {
-                    setState(() {
-                      _loadingSelectores = true;
-                      _selectorError = null;
-                    });
-                    _cargarEmpresas();
-                  },
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            )
-          : Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<Empresa>(
-                      isExpanded: true,
-                      hint: Text(
-                        _empresas.isEmpty
-                            ? 'Sin empresas disponibles'
-                            : 'Empresa',
-                      ),
-                      value: _empresaSeleccionada,
-                      items: _empresas
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(
-                                e.nombre,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: _onEmpresaSeleccionada,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(width: 1, height: 28, color: Colors.grey.shade300),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<Ruta>(
-                      isExpanded: true,
-                      hint: Text(
-                        _empresaSeleccionada == null
-                            ? 'Selecciona una empresa'
-                            : (_rutasDeEmpresa.isEmpty
-                                  ? 'Sin rutas disponibles'
-                                  : 'Ruta'),
-                      ),
-                      value: _rutaSeleccionada,
-                      items: _rutasDeEmpresa
-                          .map(
-                            (r) => DropdownMenuItem(
-                              value: r,
-                              child: Text(
-                                r.nombre,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: _rutasDeEmpresa.isEmpty
-                          ? null
-                          : _onRutaSeleccionada,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+      children: [
+        flutter_map.TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.example.flutter_application_1',
+        ),
+        flutter_map.PolylineLayer(polylines: _polylines),
+        flutter_map.MarkerLayer(
+          markers: [
+            ..._busMarkers,
+            if (_userPosition != null) _construirMarkerUsuario(_userPosition!),
+          ],
+        ),
+        const flutter_map.RichAttributionWidget(
+          attributions: [flutter_map.TextSourceAttribution('OpenStreetMap')],
+        ),
+      ],
     );
   }
 }

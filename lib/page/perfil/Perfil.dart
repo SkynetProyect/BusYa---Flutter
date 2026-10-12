@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/model/Usuario.dart';
+import 'package:flutter_application_1/page/perfil/componentes/ReportarErrorDialog.dart'
+    show showReportarErrorDialog;
 import 'package:flutter_application_1/page/perfil/componentes/TopBar.dart'
     show TopBar;
 import 'package:flutter_application_1/page/perfil/componentes/perfil_header_card.dart';
@@ -159,6 +161,17 @@ class _PerfilState extends State<Perfil> {
                       },
                       onLogout: _cerrarSesion,
                       onDeleteAccount: _eliminarCuenta,
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Botón para reportar errores de la app.
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => showReportarErrorDialog(context),
+                        icon: const Icon(Icons.bug_report_outlined),
+                        label: const Text('Reportar error'),
+                      ),
                     ),
                   ],
                 ),

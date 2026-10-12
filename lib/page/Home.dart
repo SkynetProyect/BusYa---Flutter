@@ -5,7 +5,6 @@ import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'package:flutter_application_1/page/historial/Historial.dart';
 import 'package:flutter_application_1/page/inicio/Inicio.dart';
 import 'package:flutter_application_1/page/pagos/Pagos.dart';
 import 'package:flutter_application_1/page/perfil/Perfil.dart';

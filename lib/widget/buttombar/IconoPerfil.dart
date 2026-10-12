@@ -13,12 +13,12 @@ class IconoPerfil extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSelected = selectedIndex == 4;
+    final bool isSelected = selectedIndex == 3;
     const activeColor = AppColors.primary;
     const inactiveColor = Color(0xFF9E9E9E);
 
     return InkWell(
-      onTap: () => callbackfunction(4),
+      onTap: () => callbackfunction(3),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         height: 50,
