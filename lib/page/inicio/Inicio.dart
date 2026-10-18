@@ -11,8 +11,6 @@ import 'package:flutter_application_1/page/inicio/componentes/BusInfoSheet.dart'
 import 'package:flutter_application_1/page/inicio/componentes/BusMarkerIcon.dart';
 import 'package:flutter_application_1/page/inicio/componentes/OccupancyFormater.dart'
     show OccupancyFormatter;
-import 'package:flutter_application_1/page/inicio/componentes/PeriodicPooler.dart'
-    show PeriodicPoller;
 import 'package:flutter_application_1/page/inicio/componentes/PolylineDecoder.dart'
     show PolylineDecoder;
 import 'package:flutter_application_1/page/inicio/componentes/RouteSelectorBar.dart';
@@ -34,9 +32,11 @@ import 'package:flutter_application_1/service/rest/ruta/RutaService.dart'
 import 'package:flutter_map/flutter_map.dart' as flutter_map;
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' as latlong;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Pantalla principal: mapa con ruta seleccionada, buses en tiempo real,
-/// ubicación/orientación del usuario y alertas de proximidad.
+/// Pantalla principal: mapa con ruta seleccionada, buses en tiempo real
+/// (Supabase Realtime Broadcast), ubicación/orientación del usuario y
+/// alertas de proximidad.
 class Inicio extends StatefulWidget {
   const Inicio({super.key});
 
@@ -46,17 +46,20 @@ class Inicio extends StatefulWidget {
 
 class _InicioState extends State<Inicio> with WidgetsBindingObserver {
   // ───────────── Constantes
-  static const Duration _busPollInterval = Duration(seconds: 2);
+  static const String _busChannelName = 'seguimiento-buses';
+  static const String _busEventName = 'posicion_bus';
+  static const Duration _renderThrottle = Duration(milliseconds: 250);
   static const latlong.LatLng _defaultCenter = latlong.LatLng(6.2442, -75.5812);
 
-  // ───────────── Servicios (cada uno con una única responsabilidad)
+  // ───────────── Servicios
   final RutaService _rutaService = RutaService();
   final EmpresaService _empresaService = EmpresaService();
   final BusService _busService = BusService();
   final SelectionStorageService _selectionStorage = SelectionStorageService();
   final CompassService _compass = CompassService();
   final BusProximityAlertService _alertService = BusProximityAlertService();
-  final PeriodicPoller _busPoller = PeriodicPoller();
+
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   final flutter_map.MapController _mapController = flutter_map.MapController();
 
@@ -71,7 +74,12 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
   // ───────────── Estado del mapa
   List<flutter_map.Polyline> _polylines = [];
   List<flutter_map.Marker> _busMarkers = [];
-  bool _busRequestInFlight = false;
+
+  /// Último estado conocido de cada bus de la ruta activa (id -> Bus).
+  /// Se siembra con un snapshot REST y se actualiza con los broadcasts.
+  final Map<int, Bus> _busesPorId = {};
+  RealtimeChannel? _busChannel;
+  Timer? _renderTimer;
 
   // ───────────── Estado de ubicación
   StreamSubscription<Position>? _positionSubscription;
@@ -84,7 +92,7 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _cargarSelectores(); // Carga empresas y restaura la selección guardada.
+    _cargarSelectores();
     _cargarUbicacion();
     _iniciarBrujula();
   }
@@ -92,7 +100,8 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _busPoller.stop();
+    _renderTimer?.cancel();
+    unawaited(_cancelarSuscripcionBuses());
     _positionSubscription?.cancel();
     _compass.dispose();
     _alertService.dispose();
@@ -100,22 +109,23 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Pausa/reanuda sensores y polling según el estado de la app.
+  /// Pausa/reanuda sensores y suscripción realtime según el estado de la app.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
       case AppLifecycleState.detached:
-        _busPoller.stop();
+        unawaited(_cancelarSuscripcionBuses());
         _positionSubscription?.pause();
         _compass.pause();
         break;
       case AppLifecycleState.resumed:
         _positionSubscription?.resume();
         _compass.resume();
-        if (_rutaSeleccionada != null && !_busPoller.isRunning) {
-          _iniciarPollingBuses(refrescarYa: true);
+        final ruta = _rutaSeleccionada;
+        if (ruta != null && _busChannel == null) {
+          _iniciarSeguimientoBuses(ruta);
         }
         break;
       case AppLifecycleState.hidden:
@@ -123,7 +133,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  /// Inicia la brújula; si falla o no existe, la app sigue funcionando.
   void _iniciarBrujula() {
     try {
       _compass.start();
@@ -134,7 +143,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
 
   // ═══════════════════════ Ubicación ═══════════════════════
 
-  /// Obtiene la posición inicial y se suscribe a los cambios.
   Future<void> _cargarUbicacion() async {
     try {
       final position = await determinePosition();
@@ -156,8 +164,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  /// Guarda la posición del usuario y centra el mapa la primera vez
-  /// (salvo que ya haya una ruta encuadrada).
   void _actualizarUbicacion(Position position) {
     if (!mounted) return;
     final location = latlong.LatLng(position.latitude, position.longitude);
@@ -169,9 +175,40 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
+  /// Centra el mapa en la posición del usuario (botón "Mi ubicación").
+  /// Mantiene el zoom actual si ya es cercano; si no, acerca a 15.
+  Future<void> _centrarEnUsuario() async {
+    var pos = _userPosition;
+
+    if (pos == null) {
+      // Aún sin ubicación: intentar obtenerla ahora.
+      try {
+        final position = await determinePosition();
+        if (!mounted) return;
+        _actualizarUbicacion(position);
+        pos = _userPosition;
+      } catch (_) {}
+    }
+
+    if (!mounted) return;
+    if (pos == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No se pudo obtener tu ubicación. Revisa los permisos.',
+          ),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    final zoom = _mapController.camera.zoom;
+    _mapController.move(pos, zoom < 15 ? 15 : zoom);
+  }
+
   // ═══════════════════════ Selección Empresa / Ruta ═══════════════════════
 
-  /// Carga empresas y luego restaura la última selección persistida.
   Future<void> _cargarSelectores() async {
     try {
       final empresas = await _empresaService.getAll();
@@ -189,7 +226,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  /// Reaplica la Empresa/Ruta guardadas (si siguen existiendo).
   Future<void> _restaurarSeleccion() async {
     try {
       final saved = await _selectionStorage.load();
@@ -217,30 +253,25 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
 
       await _seleccionarRuta(ruta, persistir: false);
     } catch (e) {
-      // Un fallo al restaurar nunca debe mostrar el error de carga.
       debugPrint('[SELECTION] error restaurando: $e');
     }
   }
 
-  /// Persiste la selección actual.
   Future<void> _guardarSeleccion() => _selectionStorage.save(
     empresaId: _empresaSeleccionada?.id,
     rutaId: _rutaSeleccionada?.id,
   );
 
-  /// Acción del usuario sobre el dropdown de empresa.
   Future<void> _onEmpresaSeleccionada(Empresa? empresa) =>
       _seleccionarEmpresa(empresa);
 
-  /// Acción del usuario sobre el dropdown de ruta.
   Future<void> _onRutaSeleccionada(Ruta? ruta) => _seleccionarRuta(ruta);
 
-  /// Selecciona una empresa, limpia el mapa y carga sus rutas.
   Future<void> _seleccionarEmpresa(
     Empresa? empresa, {
     bool persistir = true,
   }) async {
-    _detenerPollingBuses();
+    await _detenerSeguimientoBuses();
     setState(() {
       _empresaSeleccionada = empresa;
       _rutaSeleccionada = null;
@@ -260,9 +291,9 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  /// Selecciona una ruta: dibuja su trazado e inicia el seguimiento de buses.
+  /// Selecciona una ruta: dibuja su trazado e inicia el seguimiento realtime.
   Future<void> _seleccionarRuta(Ruta? ruta, {bool persistir = true}) async {
-    _detenerPollingBuses();
+    await _detenerSeguimientoBuses();
     _alertService.reset();
     setState(() {
       _rutaSeleccionada = ruta;
@@ -272,21 +303,17 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     if (ruta == null) return;
 
     _dibujarPolyline(ruta);
-    await _actualizarBuses(); // Primera carga inmediata.
-    if (!mounted || _rutaSeleccionada?.id != ruta.id) return;
-
-    _iniciarPollingBuses();
+    await _iniciarSeguimientoBuses(ruta);
   }
 
-  /// Borra polylines y marcadores de buses del mapa.
   void _limpiarMapa() {
     _polylines = [];
     _busMarkers = [];
+    _busesPorId.clear();
   }
 
-  // ═══════════════════════ Mapa: ruta y buses ═══════════════════════
+  // ═══════════════════════ Mapa: ruta ═══════════════════════
 
-  /// Dibuja el trazado de la ruta y encuadra la cámara sobre él.
   void _dibujarPolyline(Ruta ruta) {
     final encoded = ruta.encodedPolyline;
     if (encoded == null || encoded.isEmpty) return;
@@ -294,7 +321,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     final points = PolylineDecoder.decode(encoded);
     if (points.isEmpty) return;
 
-    // La ruta tiene prioridad sobre el centrado inicial en el usuario.
     _centerOnUserLocation = false;
 
     setState(() {
@@ -309,7 +335,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     _ajustarCamara(points);
   }
 
-  /// Encuadra la cámara para mostrar todos los [points].
   Future<void> _ajustarCamara(List<latlong.LatLng> points) async {
     await Future.delayed(const Duration(milliseconds: 200));
     if (!mounted) return;
@@ -321,48 +346,143 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     );
   }
 
-  /// Inicia el polling periódico de buses.
-  void _iniciarPollingBuses({bool refrescarYa = false}) {
-    if (refrescarYa) _actualizarBuses();
-    _busPoller.start(_busPollInterval, _actualizarBuses);
+  // ═══════════════════════ Buses en tiempo real ═══════════════════════
+
+  /// 1) Snapshot REST (última posición guardada en BD, para pintar ya).
+  /// 2) Suscripción al canal Broadcast para los movimientos en vivo.
+  Future<void> _iniciarSeguimientoBuses(Ruta ruta) async {
+    final routeId = ruta.id;
+    if (routeId == null) return;
+
+    // Suscribirse primero para no perder mensajes mientras llega el snapshot.
+    await _suscribirBuses(routeId);
+    await _cargarSnapshotBuses(routeId);
   }
 
-  /// Detiene el polling de buses.
-  void _detenerPollingBuses() => _busPoller.stop();
+  Future<void> _suscribirBuses(int routeId) async {
+    await _cancelarSuscripcionBuses();
 
-  /// Consulta los buses de la ruta activa, evalúa alertas y refresca marcadores.
-  Future<void> _actualizarBuses() async {
-    if (!mounted) return;
-    final routeId = _rutaSeleccionada?.id;
-    if (routeId == null || _busRequestInFlight) return;
+    final channel = _supabase.channel(_busChannelName);
+    channel
+        .onBroadcast(
+          event: _busEventName,
+          callback: (payload) => _onBroadcast(routeId, payload),
+        )
+        .subscribe((status, error) {
+          debugPrint('[REALTIME] $status ${error ?? ''}');
+        });
+    _busChannel = channel;
+  }
 
-    _busRequestInFlight = true;
+  Future<void> _cancelarSuscripcionBuses() async {
+    final channel = _busChannel;
+    _busChannel = null;
+    if (channel != null) {
+      try {
+        await _supabase.removeChannel(channel);
+      } catch (e) {
+        debugPrint('[REALTIME] error cerrando canal: $e');
+      }
+    }
+  }
+
+  Future<void> _detenerSeguimientoBuses() async {
+    _renderTimer?.cancel();
+    await _cancelarSuscripcionBuses();
+  }
+
+  /// Carga la última posición persistida de los buses de la ruta.
+  Future<void> _cargarSnapshotBuses(int routeId) async {
     try {
       final buses = await _busService.getByRutaId(routeId);
       if (!mounted || _rutaSeleccionada?.id != routeId) return;
 
-      final markers = <flutter_map.Marker>[];
-      final activeIds = <int>{};
-
       for (final bus in buses) {
-        if (bus.latitudActual == null || bus.longitudActual == null) continue;
-        final busPos = latlong.LatLng(bus.latitudActual!, bus.longitudActual!);
-        if (bus.id != null) activeIds.add(bus.id!);
-
-        _evaluarAlerta(bus, busPos);
-        markers.add(_construirMarkerBus(bus, busPos));
+        final id = bus.id;
+        if (id == null) continue;
+        // No pisar un dato en vivo más reciente con el snapshot.
+        _busesPorId.putIfAbsent(id, () => bus);
+        final lat = bus.latitudActual;
+        final lng = bus.longitudActual;
+        if (lat != null && lng != null) {
+          _evaluarAlerta(bus, latlong.LatLng(lat, lng));
+        }
       }
-
-      _alertService.retainOnly(activeIds);
-      setState(() => _busMarkers = markers);
-    } catch (_) {
-      // Un fallo puntual no debe interrumpir el polling.
-    } finally {
-      _busRequestInFlight = false;
+      _renderizarBuses();
+    } catch (e) {
+      debugPrint('[BUSES] snapshot falló: $e');
     }
   }
 
-  /// Evalúa proximidad del bus y muestra el aviso en pantalla si aplica.
+  /// Maneja un mensaje Broadcast. Acepta:
+  ///  - lote:   { buses: [ {id_bus, ...}, ... ] }
+  ///  - simple: { id_bus, latitud, longitud, nivel_ocupacion, ... }
+  void _onBroadcast(int routeId, Map<String, dynamic> message) {
+    if (!mounted || _rutaSeleccionada?.id != routeId) return;
+
+    // Según la versión del SDK el payload llega envuelto en 'payload'.
+    final inner = message['payload'];
+    final data = Map<String, dynamic>.from(inner is Map ? inner : message);
+
+    final items = data['buses'] is List ? data['buses'] as List : [data];
+
+    var changed = false;
+    for (final item in items) {
+      if (item is! Map) continue;
+      if (_aplicarPosicion(routeId, Map<String, dynamic>.from(item))) {
+        changed = true;
+      }
+    }
+    if (changed) _programarRender();
+  }
+
+  /// Aplica una posición al estado local. Devuelve true si hubo cambios.
+  bool _aplicarPosicion(int routeId, Map<String, dynamic> m) {
+    final idRuta = (m['id_ruta'] as num?)?.toInt();
+    final idBus = (m['id_bus'] as num?)?.toInt();
+    final lat = (m['latitud'] as num?)?.toDouble();
+    final lng = (m['longitud'] as num?)?.toDouble();
+    if (idBus == null || lat == null || lng == null) return false;
+    if (idRuta != null && idRuta != routeId) return false; // otra ruta
+
+    final actual = _busesPorId[idBus];
+    if (actual == null) return false; // bus que no está en el snapshot
+
+    final actualizado = actual.copyWith(
+      latitudActual: lat,
+      longitudActual: lng,
+      nivelOcupacion:
+          (m['nivel_ocupacion'] as String?) ?? actual.nivelOcupacion,
+      ultimaActualizacionGps:
+          DateTime.tryParse(m['timestamp']?.toString() ?? '') ??
+          actual.ultimaActualizacionGps,
+    );
+    _busesPorId[idBus] = actualizado;
+    _evaluarAlerta(actualizado, latlong.LatLng(lat, lng));
+    return true;
+  }
+
+  /// Agrupa varias actualizaciones en un único setState.
+  void _programarRender() {
+    if (_renderTimer?.isActive ?? false) return;
+    _renderTimer = Timer(_renderThrottle, () {
+      if (mounted) _renderizarBuses();
+    });
+  }
+
+  void _renderizarBuses() {
+    if (!mounted) return;
+    final markers = <flutter_map.Marker>[];
+    for (final bus in _busesPorId.values) {
+      final lat = bus.latitudActual;
+      final lng = bus.longitudActual;
+      if (lat == null || lng == null) continue;
+      markers.add(_construirMarkerBus(bus, latlong.LatLng(lat, lng)));
+    }
+    _alertService.retainOnly(_busesPorId.keys.toSet());
+    setState(() => _busMarkers = markers);
+  }
+
   void _evaluarAlerta(Bus bus, latlong.LatLng busPos) {
     final user = _userPosition;
     if (user == null) return;
@@ -377,7 +497,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     }
   }
 
-  /// Crea el marcador de un bus.
   flutter_map.Marker _construirMarkerBus(Bus bus, latlong.LatLng pos) {
     return flutter_map.Marker(
       point: pos,
@@ -387,7 +506,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     );
   }
 
-  /// Marcador del usuario (flecha con brújula o punto sin ella).
   flutter_map.Marker _construirMarkerUsuario(latlong.LatLng pos) {
     return flutter_map.Marker(
       point: pos,
@@ -397,7 +515,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     );
   }
 
-  /// Muestra el detalle del bus en un bottom sheet.
   void _mostrarInfoBus(Bus bus) {
     if (!mounted) return;
     showModalBottomSheet(
@@ -448,6 +565,16 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
                   },
                 ),
               ),
+              Positioned(
+                right: 16,
+                bottom: 16,
+                child: FloatingActionButton.small(
+                  heroTag: 'btn_centrar_usuario',
+                  tooltip: 'Mi ubicación',
+                  onPressed: _centrarEnUsuario,
+                  child: const Icon(Icons.my_location),
+                ),
+              ),
             ],
           ),
         ),
@@ -455,7 +582,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     );
   }
 
-  /// Mapa con tiles, ruta, buses y marcador del usuario.
   Widget _buildMap() {
     return flutter_map.FlutterMap(
       mapController: _mapController,

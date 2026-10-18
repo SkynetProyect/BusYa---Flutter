@@ -28,4 +28,27 @@ class Bus implements BusInterface {
     this.longitudActual,
     this.ultimaActualizacionGps,
   });
+
+  Bus copyWith({
+    int? id,
+    int? idRuta,
+    String? placa,
+    int? capacidadMaxima,
+    String? nivelOcupacion,
+    double? latitudActual,
+    double? longitudActual,
+    DateTime? ultimaActualizacionGps,
+  }) {
+    return Bus(
+      id: id ?? this.id,
+      idRuta: idRuta ?? this.idRuta,
+      placa: placa ?? this.placa,
+      capacidadMaxima: capacidadMaxima ?? this.capacidadMaxima,
+      nivelOcupacion: nivelOcupacion ?? this.nivelOcupacion,
+      latitudActual: latitudActual ?? this.latitudActual,
+      longitudActual: longitudActual ?? this.longitudActual,
+      ultimaActualizacionGps:
+          ultimaActualizacionGps ?? this.ultimaActualizacionGps,
+    );
+  }
 }
