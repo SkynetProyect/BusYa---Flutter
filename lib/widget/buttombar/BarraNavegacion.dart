@@ -6,6 +6,8 @@ import 'package:flutter_application_1/widget/buttombar/IconoPago.dart'
     show IconoPago;
 import 'package:flutter_application_1/widget/buttombar/IconoPerfil.dart'
     show IconoPerfil;
+import 'package:flutter_application_1/widget/buttombar/IconoHistorial.dart'
+    show IconoHistorial;
 import 'package:flutter_application_1/widget/buttombar/IconoRuta.dart'
     show IconoRuta;
 
@@ -56,11 +58,10 @@ class BarraNavegacion extends StatelessWidget {
               selectedIndex: selectedIndex,
               callbackfunction: callbackfunction,
             ),
-            /*
             IconoHistorial(
               selectedIndex: selectedIndex,
               callbackfunction: callbackfunction,
-            ),*/
+            ),
             IconoPerfil(
               selectedIndex: selectedIndex,
               callbackfunction: callbackfunction,

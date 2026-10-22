@@ -22,7 +22,7 @@ class IconoHistorial extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         height: 50,
-        width: 50,
+        width: 66,
         margin: const EdgeInsets.symmetric(horizontal: 4),
         child: Center(
           child: Column(
@@ -40,6 +40,9 @@ class IconoHistorial extends StatelessWidget {
                   color: isSelected ? activeColor : inactiveColor,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   fontSize: 11,
+                maxLines: 1,
+                softWrap: false,
+                textAlign: TextAlign.center,
                 ),
               ),
             ],
