@@ -154,7 +154,10 @@ class _RegisteredCardsState extends State<RegisteredCards> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -233,7 +236,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
                     const Expanded(
                       child: Text(
                         'No se pudieron cargar tus tarjetas.',
-                        style: TextStyle(color: Colors.red, fontSize: 13),
+                        style: TextStyle(color: AppColors.error, fontSize: 13),
                       ),
                     ),
                     TextButton(
@@ -252,7 +255,7 @@ class _RegisteredCardsState extends State<RegisteredCards> {
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Text(
                   'Aún no tienes tarjetas registradas',
-                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                  style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                 ),
               );
             }

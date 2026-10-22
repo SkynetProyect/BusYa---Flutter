@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 // <-- aquí vive ImageFilter
 
@@ -13,17 +14,19 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     return Container(
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.8),
+        color: AppColors.surfaceWhite.withValues(alpha: 0.8),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.5), // bright top/left edge
+          color: AppColors.surfaceWhite.withValues(
+            alpha: 0.5,
+          ), // bright top/left edge
           width: 1.5,
         ),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            const Color.fromARGB(255, 223, 124, 59), // lighter corner
-            const Color.fromARGB(255, 25, 27, 150), // darker corner
+            AppColors.topBarHighlight, // lighter corner
+            AppColors.topBarDeep, // darker corner
           ],
         ),
       ),
@@ -31,13 +34,13 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
         title: const Text(
           "Listos en Paz o Emergencia",
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.surfaceWhite,
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
         centerTitle: true,
-        backgroundColor: const Color.fromARGB(30, 255, 255, 255),
+        backgroundColor: AppColors.overlayWhiteSubtle,
       ),
     );
   }

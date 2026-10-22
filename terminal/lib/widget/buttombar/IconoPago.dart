@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class IconoPago extends StatelessWidget {
   final ValueChanged<int> callbackfunction;
@@ -25,12 +26,16 @@ class IconoPago extends StatelessWidget {
             children: [
               Icon(
                 Icons.credit_card,
-                color: selectedIndex == 1 ? Colors.white : Colors.black,
+                color: selectedIndex == 1
+                    ? AppColors.surfaceWhite
+                    : AppColors.textBlack,
               ),
               Text(
                 'Pagos',
                 style: TextStyle(
-                  color: selectedIndex == 1 ? Colors.white : Colors.black,
+                  color: selectedIndex == 1
+                      ? AppColors.surfaceWhite
+                      : AppColors.textBlack,
                 ),
               ),
             ],

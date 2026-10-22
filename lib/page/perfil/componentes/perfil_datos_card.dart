@@ -20,7 +20,7 @@ class PerfilDatosCard extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFFF0EDF8),
+              color: AppColors.surfaceLavender,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: AppColors.primary, size: 22),
@@ -34,7 +34,10 @@ class PerfilDatosCard extends StatelessWidget {
               children: [
                 Text(
                   titulo,
-                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textMedium,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
@@ -42,7 +45,7 @@ class PerfilDatosCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: AppColors.textDark,
                   ),
                 ),
               ],
@@ -59,9 +62,9 @@ class PerfilDatosCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEBECEF)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +89,7 @@ class PerfilDatosCard extends StatelessWidget {
             valor: '${usuario.puntosEco ?? 0} pts',
           ),
 
-          const Divider(height: 1, color: Color(0xFFEBECEF)),
+          const Divider(height: 1, color: AppColors.border),
 
           _dato(
             icon: Icons.badge_outlined,
@@ -94,7 +97,7 @@ class PerfilDatosCard extends StatelessWidget {
             valor: usuario.numeroDocumento,
           ),
 
-          const Divider(height: 1, color: Color(0xFFEBECEF)),
+          const Divider(height: 1, color: AppColors.border),
 
           _dato(
             icon: Icons.phone_outlined,

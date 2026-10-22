@@ -61,7 +61,7 @@ class _NfcStatusBannerState extends State<NfcStatusBanner>
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE7F5EE),
+        color: AppColors.surfaceMint,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

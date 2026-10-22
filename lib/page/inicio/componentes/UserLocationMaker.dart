@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 /// Marcador del usuario en el mapa.
 /// - Con brújula disponible: flecha que rota según el azimut.
@@ -14,7 +15,7 @@ class UserLocationMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<double?>(
       valueListenable: heading,
-      builder: (_, value, __) =>
+      builder: (_, value, _) =>
           value == null ? const _LocationDot() : _HeadingArrow(heading: value),
     );
   }
@@ -31,10 +32,12 @@ class _LocationDot extends StatelessWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: Colors.blue,
+          color: AppColors.info,
           shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
-          boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],
+          border: Border.all(color: AppColors.surfaceWhite, width: 3),
+          boxShadow: const [
+            BoxShadow(color: AppColors.textLight, blurRadius: 4),
+          ],
         ),
       ),
     );
@@ -70,11 +73,11 @@ class _HeadingArrowState extends State<_HeadingArrow> {
       duration: const Duration(milliseconds: 150),
       child: Container(
         decoration: const BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surfaceWhite,
           shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 4)],
+          boxShadow: [BoxShadow(color: AppColors.textLight, blurRadius: 4)],
         ),
-        child: const Icon(Icons.navigation, color: Colors.blue, size: 32),
+        child: const Icon(Icons.navigation, color: AppColors.info, size: 32),
       ),
     );
   }

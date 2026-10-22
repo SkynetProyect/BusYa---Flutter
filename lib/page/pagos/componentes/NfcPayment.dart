@@ -162,7 +162,7 @@ class _NfcPaymentState extends State<NfcPayment> {
             const SizedBox(height: 8),
             const Text(
               'Mantenga el teléfono cerca del sticker NFC',
-              style: TextStyle(color: Colors.black54),
+              style: TextStyle(color: AppColors.textMedium),
             ),
             const SizedBox(height: 16),
             TextButton(
@@ -173,7 +173,7 @@ class _NfcPaymentState extends State<NfcPayment> {
               },
               child: const Text(
                 'Cancelar',
-                style: TextStyle(color: Colors.red),
+                style: TextStyle(color: AppColors.error),
               ),
             ),
           ],
@@ -231,9 +231,9 @@ class _NfcPaymentState extends State<NfcPayment> {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFEBECEF)),
+            border: Border.all(color: AppColors.border),
           ),
           child: Row(
             children: [
@@ -262,9 +262,9 @@ class _NfcPaymentState extends State<NfcPayment> {
           width: double.infinity,
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFEBECEF)),
+            border: Border.all(color: AppColors.border),
             boxShadow: [
               BoxShadow(
                 color: darkPurple.withValues(alpha: 0.05),
@@ -293,7 +293,7 @@ class _NfcPaymentState extends State<NfcPayment> {
               const Text(
                 'Acerca el teléfono al sticker NFC del bus para debitar tu pasaje automáticamente.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black54, fontSize: 13),
+                style: TextStyle(color: AppColors.textMedium, fontSize: 13),
               ),
               const SizedBox(height: 20),
               CustomButton(
@@ -311,10 +311,10 @@ class _NfcPaymentState extends State<NfcPayment> {
 
 Color _brandAccentColor(String? marca) {
   final m = (marca ?? '').trim().toUpperCase();
-  if (m.contains('VISA')) return const Color(0xFF1E5AB6);
+  if (m.contains('VISA')) return AppColors.cardVisa;
   if (m.contains('AMEX') || m.contains('AMERICAN')) {
-    return const Color(0xFF66BB6A);
+    return AppColors.successLight;
   }
-  if (m.contains('MASTER')) return const Color(0xFFF9A825);
+  if (m.contains('MASTER')) return AppColors.cardMastercard;
   return AppColors.primary;
 }

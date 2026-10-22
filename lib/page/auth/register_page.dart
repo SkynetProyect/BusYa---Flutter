@@ -62,12 +62,16 @@ class _RegisterPageState extends State<RegisterPage> {
     final celular = _celularCtrl.text.trim();
 
     if (!Validators.isValidName(nombre)) {
-      _showSnackBar('El nombre debe tener entre 2 y 50 caracteres y usar solo letras.');
+      _showSnackBar(
+        'El nombre debe tener entre 2 y 50 caracteres y usar solo letras.',
+      );
       return;
     }
 
     if (!Validators.isValidName(apellido)) {
-      _showSnackBar('El apellido debe tener entre 2 y 50 caracteres y usar solo letras.');
+      _showSnackBar(
+        'El apellido debe tener entre 2 y 50 caracteres y usar solo letras.',
+      );
       return;
     }
 
@@ -88,7 +92,9 @@ class _RegisterPageState extends State<RegisterPage> {
       documento,
       documentTypeId: _idTipoDocumento,
     )) {
-      _showSnackBar('El documento no tiene un formato válido para el tipo seleccionado');
+      _showSnackBar(
+        'El documento no tiene un formato válido para el tipo seleccionado',
+      );
       return;
     }
 
@@ -152,9 +158,9 @@ class _RegisterPageState extends State<RegisterPage> {
     const greenPrimary = AppColors.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surfaceTransparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: darkPurple),
@@ -170,9 +176,9 @@ class _RegisterPageState extends State<RegisterPage> {
         child: Container(
           padding: const EdgeInsets.all(20.0),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surfaceWhite,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFEBECEF)),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,7 +222,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       snapshot.data!.isEmpty) {
                     return const Text(
                       'Error al cargar tipos de documento',
-                      style: TextStyle(color: Colors.red),
+                      style: TextStyle(color: AppColors.error),
                     );
                   }
 
@@ -231,7 +237,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         color: greenPrimary,
                       ),
                       filled: true,
-                      fillColor: const Color(0xFFF6F7FB),
+                      fillColor: AppColors.surface,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -300,7 +306,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     _obscurePassword
                         ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
-                    color: Colors.grey,
+                    color: AppColors.textMuted,
                   ),
                   onPressed: () {
                     setState(() {

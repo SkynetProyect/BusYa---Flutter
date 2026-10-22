@@ -64,7 +64,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: AppColors.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -76,9 +76,9 @@ class _LoginPageState extends State<LoginPage> {
                 Container(
                   padding: const EdgeInsets.all(20.0),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surfaceWhite,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFEBECEF)),
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
                   child: RichText(
                     text: const TextSpan(
                       text: '¿No tienes cuenta? ',
-                      style: TextStyle(color: Colors.black54),
+                      style: TextStyle(color: AppColors.textMedium),
                       children: [
                         TextSpan(
                           text: 'Regístrate aquí',

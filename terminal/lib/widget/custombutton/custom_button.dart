@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -20,20 +21,20 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF529471),
+          backgroundColor: AppColors.terminalPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(25),
           ),
           elevation: 0,
         ),
         child: isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
+            ? const CircularProgressIndicator(color: AppColors.surfaceWhite)
             : Text(
                 text,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.surfaceWhite,
                 ),
               ),
       ),

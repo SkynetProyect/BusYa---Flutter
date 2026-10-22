@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/widget/buttombar/IconoHistorial.dart'
     show IconoHistorial;
 import 'package:flutter_application_1/widget/buttombar/IconoInicio.dart'
@@ -13,8 +14,8 @@ import 'package:flutter_application_1/widget/buttombar/IconoRuta.dart'
 class BarraNavegacion extends StatelessWidget {
   final ValueChanged<int> callbackfunction;
   final int selectedIndex;
-  static const Color colorleft = Color.fromARGB(255, 59, 158, 223);
-  static const Color colorright = Color.fromARGB(255, 54, 212, 94);
+  static const Color colorleft = AppColors.terminalNavigationStart;
+  static const Color colorright = AppColors.terminalNavigationEnd;
 
   const BarraNavegacion({
     super.key,
@@ -31,15 +32,14 @@ class BarraNavegacion extends StatelessWidget {
       child: Container(
         height: 50,
         decoration: BoxDecoration(
-          color: const Color.fromARGB(
-            255,
-            230,
-            224,
-            224,
-          ).withValues(alpha: 0.5), // semi-transparent fill
+          color: AppColors.terminalNavigationSurface.withValues(
+            alpha: 0.5,
+          ), // semi-transparent fill
           borderRadius: BorderRadiusGeometry.circular(100),
           border: Border.all(
-            color: Colors.white.withValues(alpha: 0.6), // bright top/left edge
+            color: AppColors.surfaceWhite.withValues(
+              alpha: 0.6,
+            ), // bright top/left edge
             width: 1.5,
           ),
           gradient: LinearGradient(

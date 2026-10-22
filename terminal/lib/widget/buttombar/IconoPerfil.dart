@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class IconoPerfil extends StatelessWidget {
   final ValueChanged<int> callbackfunction;
@@ -25,12 +26,16 @@ class IconoPerfil extends StatelessWidget {
             children: [
               Icon(
                 Icons.person_2_outlined,
-                color: selectedIndex == 4 ? Colors.white : Colors.black,
+                color: selectedIndex == 4
+                    ? AppColors.surfaceWhite
+                    : AppColors.textBlack,
               ),
               Text(
                 'Perfil',
                 style: TextStyle(
-                  color: selectedIndex == 4 ? Colors.white : Colors.black,
+                  color: selectedIndex == 4
+                      ? AppColors.surfaceWhite
+                      : AppColors.textBlack,
                 ),
               ),
             ],

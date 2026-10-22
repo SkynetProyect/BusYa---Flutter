@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 /// Reusable ListTile adaptado al diseño de la interfaz
 class PerfilOptionTile extends StatelessWidget {
@@ -22,7 +23,7 @@ class PerfilOptionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? Colors.grey[700]),
+      leading: Icon(icon, color: iconColor ?? AppColors.textTertiary),
       title: Text(
         title,
         style: TextStyle(
@@ -34,13 +35,16 @@ class PerfilOptionTile extends StatelessWidget {
       subtitle: subtitle != null
           ? Text(
               subtitle!,
-              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondaryMuted,
+              ),
             )
           : null,
       trailing: const Icon(
         Icons.arrow_forward_ios_rounded,
         size: 16,
-        color: Colors.grey,
+        color: AppColors.textMuted,
       ),
       onTap: onTap,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

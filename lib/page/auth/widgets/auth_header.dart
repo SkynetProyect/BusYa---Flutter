@@ -20,7 +20,7 @@ class AuthHeader extends StatelessWidget {
             height: 62,
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFF11192D),
+              color: AppColors.authHeading,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Image.asset(
@@ -32,7 +32,7 @@ class AuthHeader extends StatelessWidget {
           Text(
             'RUTÉATE',
             style: TextStyle(
-              color: Colors.white,
+              color: AppColors.surfaceWhite,
               fontSize: 12,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.2,
@@ -41,17 +41,30 @@ class AuthHeader extends StatelessWidget {
           SizedBox(height: 4),
           RichText(
             text: const TextSpan(
-              style: TextStyle(fontSize: 40, fontWeight: FontWeight.w600, height: 1),
+              style: TextStyle(
+                fontSize: 40,
+                fontWeight: FontWeight.w600,
+                height: 1,
+              ),
               children: [
-                TextSpan(text: 'bus', style: TextStyle(color: AppColors.green)),
-                TextSpan(text: 'YA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                TextSpan(
+                  text: 'bus',
+                  style: TextStyle(color: AppColors.green),
+                ),
+                TextSpan(
+                  text: 'YA',
+                  style: TextStyle(
+                    color: AppColors.surfaceWhite,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ],
             ),
           ),
           SizedBox(height: 4),
           Text(
             'Movilidad inteligente · Medellín',
-            style: TextStyle(color: Colors.white, fontSize: 13),
+            style: TextStyle(color: AppColors.surfaceWhite, fontSize: 13),
           ),
         ],
       ),

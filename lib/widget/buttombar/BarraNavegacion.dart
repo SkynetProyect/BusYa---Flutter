@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/widget/buttombar/IconoHistorial.dart'
-    show IconoHistorial;
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/widget/buttombar/IconoInicio.dart'
     show IconoInicio;
 import 'package:flutter_application_1/widget/buttombar/IconoPago.dart'
@@ -30,12 +29,12 @@ class BarraNavegacion extends StatelessWidget {
         constraints: const BoxConstraints(maxWidth: 430),
         height: 62,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: const Color(0xFFEBECEF), width: 1.2),
+          border: Border.all(color: AppColors.border, width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF33304E).withValues(alpha: 0.08),
+              color: AppColors.shadow.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 10),
               spreadRadius: 0,

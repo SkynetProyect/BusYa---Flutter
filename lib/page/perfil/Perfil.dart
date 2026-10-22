@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/model/Usuario.dart';
 import 'package:flutter_application_1/page/perfil/componentes/ReportarErrorDialog.dart'
@@ -54,7 +55,7 @@ class _PerfilState extends State<Perfil> {
             onPressed: () => Navigator.pop(context, true),
             child: const Text(
               'Cerrar sesión',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: AppColors.error),
             ),
           ),
         ],
@@ -82,7 +83,10 @@ class _PerfilState extends State<Perfil> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),

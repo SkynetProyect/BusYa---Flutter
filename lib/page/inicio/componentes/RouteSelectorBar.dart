@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
 
@@ -34,11 +35,11 @@ class RouteSelectorBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: AppColors.textBlack.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -75,7 +76,7 @@ class RouteSelectorBar extends StatelessWidget {
       children: [
         Expanded(child: _buildEmpresaDropdown()),
         const SizedBox(width: 8),
-        Container(width: 1, height: 28, color: Colors.grey.shade300),
+        Container(width: 1, height: 28, color: AppColors.neutralLight),
         const SizedBox(width: 8),
         Expanded(child: _buildRutaDropdown()),
       ],

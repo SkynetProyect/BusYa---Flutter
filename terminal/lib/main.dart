@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/page/Home.dart';
 import 'package:flutter_application_1/page/auth/login_page.dart' show LoginPage;
 import 'app_keys.dart';
@@ -27,7 +28,7 @@ class Main extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.blue,
+          seedColor: AppColors.info,
           brightness: Brightness.light,
         ),
       ),

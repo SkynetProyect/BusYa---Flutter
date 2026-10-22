@@ -81,7 +81,7 @@ class _Historial extends State<Historial> {
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.surfaceWhite,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         clipBehavior: Clip.antiAlias,

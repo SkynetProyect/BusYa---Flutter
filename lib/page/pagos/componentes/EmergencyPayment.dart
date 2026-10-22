@@ -59,9 +59,9 @@ class _EmergencyPaymentState extends State<EmergencyPayment> {
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEBECEF)),
+        border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.05),
@@ -89,7 +89,7 @@ class _EmergencyPaymentState extends State<EmergencyPayment> {
                 ? 'Selecciona una tarjeta para pagar \$${widget.monto}.'
                 : 'Se cobrará \$${widget.monto} a ${tarjeta.marca} •••• ${tarjeta.ultimosCuatroDigitos}.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.black54, fontSize: 13),
+            style: const TextStyle(color: AppColors.textMedium, fontSize: 13),
           ),
           const SizedBox(height: 20),
           CustomButton(

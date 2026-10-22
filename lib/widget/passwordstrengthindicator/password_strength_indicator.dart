@@ -37,7 +37,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
                   value: strength,
-                  backgroundColor: Colors.grey.shade200,
+                  backgroundColor: AppColors.neutralLighter,
                   valueColor: AlwaysStoppedAnimation<Color>(color),
                   minHeight: 6,
                 ),
@@ -84,7 +84,7 @@ class PasswordStrengthIndicator extends StatelessWidget {
           Icon(
             isMet ? Icons.check_circle : Icons.radio_button_unchecked,
             size: 16,
-                  color: isMet ? AppColors.greenDark : Colors.grey,
+            color: isMet ? AppColors.greenDark : AppColors.textMuted,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -92,7 +92,9 @@ class PasswordStrengthIndicator extends StatelessWidget {
               text,
               style: TextStyle(
                 fontSize: 12,
-                color: isMet ? Colors.black87 : Colors.grey.shade600,
+                color: isMet
+                    ? AppColors.textDark
+                    : AppColors.textSecondaryMuted,
                 decoration: isMet
                     ? TextDecoration.lineThrough
                     : TextDecoration.none,
@@ -105,9 +107,9 @@ class PasswordStrengthIndicator extends StatelessWidget {
   }
 
   Color _getColor(double strength) {
-    if (strength <= 0.2) return Colors.red;
-    if (strength <= 0.6) return Colors.orange;
-    if (strength <= 0.8) return Colors.amber;
+    if (strength <= 0.2) return AppColors.error;
+    if (strength <= 0.6) return AppColors.warning;
+    if (strength <= 0.8) return AppColors.warningLight;
     return AppColors.greenDark;
   }
 

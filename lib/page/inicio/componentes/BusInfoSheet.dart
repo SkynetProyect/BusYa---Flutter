@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Bus.dart' show Bus;
 
 import 'dart:math';
@@ -42,7 +43,7 @@ class BusInfoSheet extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: markerColor.withOpacity(0.15),
+                    color: markerColor.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.directions_bus, color: markerColor),
@@ -84,7 +85,7 @@ class BusInfoSheet extends StatelessWidget {
                   child: Text(
                     'Silla de ruedas',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade700,
+                      color: AppColors.textTertiary,
                     ),
                   ),
                 ),
@@ -92,7 +93,7 @@ class BusInfoSheet extends StatelessWidget {
                 Icon(
                   accesible ? Icons.accessible : Icons.not_accessible,
                   size: 18,
-                  color: accesible ? Colors.green : Colors.red,
+                  color: accesible ? AppColors.success : AppColors.error,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -129,7 +130,7 @@ class BusInfoSheet extends StatelessWidget {
   Widget _infoRow(BuildContext context, String label, String value) {
     final styleLabel = Theme.of(
       context,
-    ).textTheme.bodySmall?.copyWith(color: Colors.grey.shade700);
+    ).textTheme.bodySmall?.copyWith(color: AppColors.textTertiary);
     final styleValue = Theme.of(context).textTheme.bodyMedium;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),

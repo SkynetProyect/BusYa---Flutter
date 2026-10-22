@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
 import 'package:flutter_application_1/page/rutas/componentes/TopBar.dart'
@@ -32,10 +33,10 @@ class _RutasState extends State<Rutas> {
   final TextEditingController _searchController = TextEditingController();
 
   final List<Color> _palette = const [
-    Color(0xFF2E7D5B), // verde oscuro
-    Color(0xFF8FD3B6), // verde claro
-    Color(0xFF6B5B7B), // morado
-    Color(0xFFA9DFC4), // verde menta
+    AppColors.routeGreen, // verde oscuro
+    AppColors.routeGreenLight, // verde claro
+    AppColors.routePurple, // morado
+    AppColors.routeMint, // verde menta
   ];
 
   @override
@@ -151,7 +152,7 @@ class _RutasState extends State<Rutas> {
         const TopBar(),
         Expanded(
           child: Container(
-            color: const Color.fromARGB(255, 245, 245, 247),
+            color: AppColors.routeSearchSurface,
             child: Column(
               children: [
                 _buildSearchBar(),
@@ -203,11 +204,11 @@ class _RutasState extends State<Rutas> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surfaceWhite,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
+              color: AppColors.textBlack.withValues(alpha: 0.05),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -217,7 +218,7 @@ class _RutasState extends State<Rutas> {
           controller: _searchController,
           decoration: const InputDecoration(
             hintText: 'Buscar ruta, barrio o empresa',
-            prefixIcon: Icon(Icons.search, color: Colors.grey),
+            prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
             border: InputBorder.none,
             contentPadding: EdgeInsets.symmetric(vertical: 14),
           ),
@@ -249,7 +250,7 @@ class _RutaCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surfaceWhite,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -260,7 +261,7 @@ class _RutaCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: AppColors.textBlack.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -274,7 +275,7 @@ class _RutaCard extends StatelessWidget {
                 child: Text(
                   codigo,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.surfaceWhite,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -295,7 +296,10 @@ class _RutaCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       _subtitulo(),
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),

@@ -11,6 +11,7 @@ import 'package:flutter_application_1/page/perfil/Perfil.dart';
 import 'package:flutter_application_1/page/rutas/Rutas.dart';
 import 'package:flutter_application_1/widget/buttombar/BarraNavegacion.dart';
 import 'package:flutter_application_1/page/puntos/puntos_eco_screen.dart';
+import 'package:flutter_application_1/page/historial/Historial.dart';
 
 class Application extends StatefulWidget {
   const Application({super.key});
@@ -52,8 +53,10 @@ class _Home extends State<Application> {
     final List<Widget> pantalla = [
       Inicio(),
       Pagos(idCliente: _idCliente ?? ''),
+      Historial(idCliente: _idCliente ?? ''),
       Rutas(),
       Perfil(),
+     
     ];
 
     return Scaffold(
@@ -67,7 +70,10 @@ class _Home extends State<Application> {
           icon: const Icon(Icons.eco, color: AppColors.green),
           label: const Text(
             'Puntos Eco',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: AppColors.surfaceWhite,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           onPressed: () {
             Navigator.push(

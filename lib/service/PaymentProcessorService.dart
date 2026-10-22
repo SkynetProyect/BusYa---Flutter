@@ -75,8 +75,8 @@ class PaymentProcessorService {
         'idCard': tarjetaSeleccionada.id,
         'idDevice': idBus,
         'amount': montoPasaje,
-        if (latitud != null) 'latitud': latitud,
-        if (longitud != null) 'longitud': longitud,
+        'latitud': ?latitud,
+        'longitud': ?longitud,
       };
 
       final response = await http

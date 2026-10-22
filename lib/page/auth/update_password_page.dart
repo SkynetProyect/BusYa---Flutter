@@ -93,9 +93,9 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
     const darkPurple = AppColors.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surfaceTransparent,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
@@ -109,9 +109,9 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
           child: Container(
             padding: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFEBECEF)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,7 +127,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
                 const SizedBox(height: 8),
                 const Text(
                   'Ingresa tu nueva contraseña respetando las políticas de seguridad.',
-                  style: TextStyle(color: Colors.black54, fontSize: 14),
+                  style: TextStyle(color: AppColors.textMedium, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
 
@@ -142,7 +142,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
                       _obscurePassword
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.grey,
+                      color: AppColors.textMuted,
                     ),
                     onPressed: () {
                       setState(() {
@@ -165,7 +165,7 @@ class _UpdatePasswordPageState extends State<UpdatePasswordPage> {
                       _obscureConfirmPassword
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.grey,
+                      color: AppColors.textMuted,
                     ),
                     onPressed: () {
                       setState(() {

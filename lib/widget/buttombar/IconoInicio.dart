@@ -15,7 +15,7 @@ class IconoInicio extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isSelected = selectedIndex == 0;
     const activeColor = AppColors.primary;
-    const inactiveColor = Color(0xFF9E9E9E);
+    const inactiveColor = AppColors.iconInactive;
 
     return InkWell(
       onTap: () => callbackfunction(0),

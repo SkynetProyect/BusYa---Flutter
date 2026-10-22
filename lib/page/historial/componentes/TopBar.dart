@@ -23,10 +23,20 @@ class TopBar extends StatelessWidget {
               children: [
                 RichText(
                   text: const TextSpan(
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1.2),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
                     children: [
-                      TextSpan(text: 'bus', style: TextStyle(color: AppColors.greenOnPrimary)),
-                      TextSpan(text: 'YA', style: TextStyle(color: Colors.white)),
+                      TextSpan(
+                        text: 'bus',
+                        style: TextStyle(color: AppColors.greenOnPrimary),
+                      ),
+                      TextSpan(
+                        text: 'YA',
+                        style: TextStyle(color: AppColors.surfaceWhite),
+                      ),
                     ],
                   ),
                 ),
@@ -34,7 +44,7 @@ class TopBar extends StatelessWidget {
                 const Text(
                   "Historial", // <---------------------------------------------------  TEXTO 2
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.surfaceWhite,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -43,7 +53,7 @@ class TopBar extends StatelessWidget {
                 Text(
                   "Viajes registrados", // <---------------------------------------------------  TEXTO 3
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.surfaceWhite,
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
                   ),

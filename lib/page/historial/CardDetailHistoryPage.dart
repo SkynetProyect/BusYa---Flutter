@@ -104,7 +104,7 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
 
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surfaceWhite,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   clipBehavior: Clip.antiAlias,

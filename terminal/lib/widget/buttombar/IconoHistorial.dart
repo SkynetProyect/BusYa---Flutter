@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class IconoHistorial extends StatelessWidget {
   final ValueChanged<int> callbackfunction;
@@ -25,12 +26,16 @@ class IconoHistorial extends StatelessWidget {
             children: [
               Icon(
                 Icons.history,
-                color: selectedIndex == 3 ? Colors.white : Colors.black,
+                color: selectedIndex == 3
+                    ? AppColors.surfaceWhite
+                    : AppColors.textBlack,
               ),
               Text(
                 'Historial',
                 style: TextStyle(
-                  color: selectedIndex == 3 ? Colors.white : Colors.black,
+                  color: selectedIndex == 3
+                      ? AppColors.surfaceWhite
+                      : AppColors.textBlack,
                 ),
               ),
             ],

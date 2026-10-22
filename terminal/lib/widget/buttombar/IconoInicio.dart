@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class IconoInicio extends StatelessWidget {
   final ValueChanged<int> callbackfunction;
@@ -25,12 +26,16 @@ class IconoInicio extends StatelessWidget {
             children: [
               Icon(
                 Icons.map_outlined,
-                color: selectedIndex == 0 ? Colors.white : Colors.black,
+                color: selectedIndex == 0
+                    ? AppColors.surfaceWhite
+                    : AppColors.textBlack,
               ),
               Text(
                 'Inicio',
                 style: TextStyle(
-                  color: selectedIndex == 0 ? Colors.white : Colors.black,
+                  color: selectedIndex == 0
+                      ? AppColors.surfaceWhite
+                      : AppColors.textBlack,
                 ),
               ),
             ],

@@ -22,15 +22,15 @@ class PerfilHeaderCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceWhite,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEBECEF)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         children: [
           const CircleAvatar(
             radius: 38,
-            backgroundColor: Color(0xFFF0EDF8),
+            backgroundColor: AppColors.surfaceLavender,
             child: Icon(
               Icons.person_outline,
               size: 42,
@@ -55,7 +55,7 @@ class PerfilHeaderCard extends StatelessWidget {
           Text(
             email,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 15, color: Colors.black54),
+            style: const TextStyle(fontSize: 15, color: AppColors.textMedium),
           ),
 
           const SizedBox(height: 18),

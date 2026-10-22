@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 class IconoRuta extends StatelessWidget {
   final ValueChanged<int> callbackfunction;
@@ -25,12 +26,16 @@ class IconoRuta extends StatelessWidget {
             children: [
               Icon(
                 Icons.route_outlined,
-                color: selectedIndex == 2 ? Colors.white : Colors.black,
+                color: selectedIndex == 2
+                    ? AppColors.surfaceWhite
+                    : AppColors.textBlack,
               ),
               Text(
                 'Ruta',
                 style: TextStyle(
-                  color: selectedIndex == 2 ? Colors.white : Colors.black,
+                  color: selectedIndex == 2
+                      ? AppColors.surfaceWhite
+                      : AppColors.textBlack,
                 ),
               ),
             ],

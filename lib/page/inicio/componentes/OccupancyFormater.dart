@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 
 /// Interpreta el nivel de ocupación de un bus (ej. "50%", "0.5", "ROJO")
 /// y lo traduce a texto y color para la UI.
@@ -27,17 +28,17 @@ class OccupancyFormatter {
   static Color color(String? nivel) {
     final ratio = parseRatio(nivel);
     if (ratio != null) {
-      if (ratio > 0.8) return Colors.red;
-      if (ratio > 0.6) return Colors.orange;
-      return Colors.green;
+      if (ratio > 0.8) return AppColors.error;
+      if (ratio > 0.6) return AppColors.warning;
+      return AppColors.success;
     }
     switch (nivel?.toUpperCase()) {
       case 'ROJO':
-        return Colors.red;
+        return AppColors.error;
       case 'NARANJA':
-        return Colors.orange;
+        return AppColors.warning;
       default:
-        return Colors.green;
+        return AppColors.success;
     }
   }
 

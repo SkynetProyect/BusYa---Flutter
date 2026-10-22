@@ -200,7 +200,7 @@ class _AddCardDialogState extends State<AddCardDialog> {
                       return Text(
                         'Marca detectada: ${marca.isEmpty ? '- -' : marca}',
                         style: const TextStyle(
-                          color: Colors.black54,
+                          color: AppColors.textMedium,
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
                         ),
@@ -243,10 +243,13 @@ class _AddCardDialogState extends State<AddCardDialog> {
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: AppColors.surfaceWhite,
                   ),
                 )
-              : const Text('Guardar', style: TextStyle(color: Colors.white)),
+              : const Text(
+                  'Guardar',
+                  style: TextStyle(color: AppColors.surfaceWhite),
+                ),
         ),
       ],
     );

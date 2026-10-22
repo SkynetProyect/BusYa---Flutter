@@ -105,14 +105,14 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
           Icon(
             fulfilled ? Icons.check_circle : Icons.radio_button_unchecked,
             size: 17,
-            color: fulfilled ? Colors.green : Colors.black38,
+            color: fulfilled ? AppColors.success : AppColors.textLight,
           ),
           const SizedBox(width: 8),
           Text(
             text,
             style: TextStyle(
               fontSize: 13,
-              color: fulfilled ? Colors.green : Colors.black54,
+              color: fulfilled ? AppColors.success : AppColors.textMedium,
               fontWeight: fulfilled ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -151,9 +151,9 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8FA),
+        color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEBECEF)),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +166,7 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: AppColors.textDark,
                 ),
               ),
               Text(
@@ -175,10 +175,10 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: strengthText == 'Fuerte'
-                      ? Colors.green
+                      ? AppColors.success
                       : strengthText == 'Media'
-                      ? Colors.orange
-                      : Colors.red,
+                      ? AppColors.warning
+                      : AppColors.error,
                 ),
               ),
             ],
@@ -191,13 +191,13 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
             child: LinearProgressIndicator(
               value: strength,
               minHeight: 7,
-              backgroundColor: const Color(0xFFE2E2E6),
+              backgroundColor: AppColors.neutralTrack,
               valueColor: AlwaysStoppedAnimation<Color>(
                 strengthText == 'Fuerte'
-                    ? Colors.green
+                    ? AppColors.success
                     : strengthText == 'Media'
-                    ? Colors.orange
-                    : Colors.red,
+                    ? AppColors.warning
+                    : AppColors.error,
               ),
             ),
           ),
@@ -231,9 +231,9 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
     const darkPurple = AppColors.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surfaceTransparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: darkPurple),
@@ -250,9 +250,9 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
           child: Container(
             padding: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFEBECEF)),
+              border: Border.all(color: AppColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,7 +268,7 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
                 const SizedBox(height: 8),
                 const Text(
                   'Ingresa y confirma tu nueva contraseña.',
-                  style: TextStyle(color: Colors.black54, fontSize: 14),
+                  style: TextStyle(color: AppColors.textMedium, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
 

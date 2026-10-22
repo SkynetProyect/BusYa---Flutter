@@ -44,11 +44,13 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
       appBar: AppBar(
         title: const Text('Mis Puntos Eco'),
         backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surfaceWhite,
         centerTitle: true,
       ),
       body: _cargando
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : RefreshIndicator(
               onRefresh: _cargarPuntos,
               child: SingleChildScrollView(
@@ -69,7 +71,7 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.green.withOpacity(0.3),
+                            color: AppColors.success.withValues(alpha: 0.3),
                             blurRadius: 10,
                             offset: const Offset(0, 5),
                           ),
@@ -77,17 +79,24 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
                       ),
                       child: Column(
                         children: [
-                          const Icon(Icons.eco, color: Colors.lightGreenAccent, size: 48),
+                          const Icon(
+                            Icons.eco,
+                            color: AppColors.ecoAccent,
+                            size: 48,
+                          ),
                           const SizedBox(height: 10),
                           const Text(
                             'Puntos Eco Acumulados',
-                            style: TextStyle(color: Colors.white70, fontSize: 16),
+                            style: TextStyle(
+                              color: AppColors.textOnPrimaryMuted,
+                              fontSize: 16,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             '$_puntos',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.surfaceWhite,
                               fontSize: 46,
                               fontWeight: FontWeight.bold,
                             ),
@@ -95,15 +104,20 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
                           const SizedBox(height: 16),
                           LinearProgressIndicator(
                             value: progreso,
-                            backgroundColor: Colors.white24,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.lightGreenAccent),
+                            backgroundColor: AppColors.loadingTrack,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              AppColors.ecoAccent,
+                            ),
                             minHeight: 8,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           const SizedBox(height: 10),
                           Text(
                             '$_puntos de $metaPuntos puntos para tu próximo pasaje gratis',
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                            style: const TextStyle(
+                              color: AppColors.textOnPrimaryMuted,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -116,18 +130,26 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
                         padding: const EdgeInsets.all(14),
                         margin: const EdgeInsets.only(bottom: 20),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE8F5E9),
+                          color: AppColors.surfaceGreen,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.green.withValues(alpha: 0.45)),
+                          border: Border.all(
+                            color: AppColors.green.withValues(alpha: 0.45),
+                          ),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.info_outline, color: AppColors.primaryLight),
+                            Icon(
+                              Icons.info_outline,
+                              color: AppColors.primaryLight,
+                            ),
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 'Aún no tienes puntos. ¡Realiza tu primer viaje con BusYa para empezar a sumar!',
-                                style: TextStyle(color: AppColors.primary, fontSize: 13),
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                           ],
@@ -137,25 +159,31 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
                     // Sección de Información y Reglas
                     const Text(
                       '¿Cómo funciona el programa?',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     _buildInfoTile(
                       icon: Icons.directions_bus,
                       title: '1 Punto por cada viaje',
-                      subtitle: 'Al validar tu pasaje en el validador NFC de cualquier bus del sistema.',
+                      subtitle:
+                          'Al validar tu pasaje en el validador NFC de cualquier bus del sistema.',
                     ),
                     const SizedBox(height: 10),
                     _buildInfoTile(
                       icon: Icons.card_giftcard,
                       title: 'Pasaje gratuito',
-                      subtitle: 'Al acumular 30 puntos obtienes un pasaje 100% bonificado en tu billetera.',
+                      subtitle:
+                          'Al acumular 30 puntos obtienes un pasaje 100% bonificado en tu billetera.',
                     ),
                     const SizedBox(height: 10),
                     _buildInfoTile(
                       icon: Icons.park,
                       title: 'Impacto ambiental',
-                      subtitle: 'Incentivamos la movilidad masiva para reducir emisiones en el Valle de Aburrá.',
+                      subtitle:
+                          'Incentivamos la movilidad masiva para reducir emisiones en el Valle de Aburrá.',
                     ),
                   ],
                 ),
@@ -164,17 +192,27 @@ class _PuntosEcoScreenState extends State<PuntosEcoScreen> {
     );
   }
 
-  Widget _buildInfoTile({required IconData icon, required String title, required String subtitle}) {
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
     return Card(
       elevation: 0.5,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFFE8F5E9),
+          backgroundColor: AppColors.surfaceGreen,
           child: Icon(icon, color: AppColors.primaryLight),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 12, color: AppColors.textMedium),
+        ),
       ),
     );
   }

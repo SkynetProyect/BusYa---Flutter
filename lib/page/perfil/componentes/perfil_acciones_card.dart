@@ -25,9 +25,9 @@ class PerfilAccionesCard extends StatelessWidget {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: color == Colors.red
-              ? const Color(0xFFFFF1F1)
-              : const Color(0xFFF0EDF8),
+          color: color == AppColors.error
+              ? AppColors.surfaceError
+              : AppColors.surfaceLavender,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: color, size: 21),
@@ -37,13 +37,15 @@ class PerfilAccionesCard extends StatelessWidget {
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: color == Colors.red ? Colors.red : Colors.black87,
+          color: color == AppColors.error
+              ? AppColors.error
+              : AppColors.textDark,
         ),
       ),
       trailing: const Icon(
         Icons.arrow_forward_ios_rounded,
         size: 15,
-        color: Colors.grey,
+        color: AppColors.textMuted,
       ),
       onTap: onTap,
     );
@@ -52,10 +54,10 @@ class PerfilAccionesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: AppColors.surfaceWhite,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: Color(0xFFEBECEF)),
+        side: const BorderSide(color: AppColors.border),
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
@@ -80,7 +82,7 @@ class PerfilAccionesCard extends StatelessWidget {
               onTap: onChangePassword,
             ),
 
-            const Divider(height: 1, color: Color(0xFFEBECEF)),
+            const Divider(height: 1, color: AppColors.border),
 
             _accion(
               icon: Icons.logout,
@@ -88,12 +90,12 @@ class PerfilAccionesCard extends StatelessWidget {
               onTap: onLogout,
             ),
 
-            const Divider(height: 1, color: Color(0xFFEBECEF)),
+            const Divider(height: 1, color: AppColors.border),
 
             _accion(
               icon: Icons.delete_outline,
               title: 'Eliminar cuenta',
-              color: Colors.red,
+              color: AppColors.error,
               onTap: onDeleteAccount,
             ),
           ],

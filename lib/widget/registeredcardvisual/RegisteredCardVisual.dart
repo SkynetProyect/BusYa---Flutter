@@ -30,13 +30,18 @@ class RegisteredCardVisual extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black26.withValues(alpha: selected ? 0.35 : 0.15),
+            color: AppColors.shadowSoft.withValues(
+              alpha: selected ? 0.35 : 0.15,
+            ),
             blurRadius: selected ? 14 : 6,
             offset: const Offset(0, 4),
           ),
         ],
         border: selected
-            ? Border.all(color: Colors.white.withValues(alpha: 0.8), width: 1.2)
+            ? Border.all(
+                color: AppColors.surfaceWhite.withValues(alpha: 0.8),
+                width: 1.2,
+              )
             : null,
       ),
       child: Column(
@@ -49,19 +54,23 @@ class RegisteredCardVisual extends StatelessWidget {
               Text(
                 tarjeta.marca.toUpperCase(),
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppColors.surfaceWhite,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                   letterSpacing: 1.5,
                 ),
               ),
-              const Icon(Icons.contactless, color: Colors.white70, size: 28),
+              const Icon(
+                Icons.contactless,
+                color: AppColors.textOnPrimaryMuted,
+                size: 28,
+              ),
             ],
           ),
           Text(
             '•••• •••• •••• ${tarjeta.ultimosCuatroDigitos}',
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.surfaceWhite,
               fontSize: 20,
               letterSpacing: 2,
               fontFamily: 'monospace',
@@ -76,13 +85,16 @@ class RegisteredCardVisual extends StatelessWidget {
                   children: [
                     const Text(
                       'TITULAR',
-                      style: TextStyle(color: Colors.white60, fontSize: 10),
+                      style: TextStyle(
+                        color: AppColors.textOnPrimarySubtle,
+                        fontSize: 10,
+                      ),
                     ),
                     Text(
                       tarjeta.nombreTitular,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: AppColors.surfaceWhite,
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
                       ),
@@ -95,12 +107,15 @@ class RegisteredCardVisual extends StatelessWidget {
                 children: [
                   const Text(
                     'EXP',
-                    style: TextStyle(color: Colors.white60, fontSize: 10),
+                    style: TextStyle(
+                      color: AppColors.textOnPrimarySubtle,
+                      fontSize: 10,
+                    ),
                   ),
                   Text(
                     tarjeta.fechaVencimiento,
                     style: const TextStyle(
-                      color: Colors.white,
+                      color: AppColors.surfaceWhite,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
@@ -112,8 +127,8 @@ class RegisteredCardVisual extends StatelessWidget {
                   icon: Icon(
                     Icons.delete_outline,
                     color: tarjeta.id == null
-                        ? Colors.redAccent.withValues(alpha: 0.4)
-                        : Colors.redAccent,
+                        ? AppColors.errorAccent.withValues(alpha: 0.4)
+                        : AppColors.errorAccent,
                   ),
                   tooltip: 'Eliminar tarjeta',
                   onPressed: tarjeta.id == null ? null : onDelete,
@@ -129,13 +144,13 @@ class RegisteredCardVisual extends StatelessWidget {
 List<Color> _brandGradientFor(String marca) {
   final m = marca.trim().toUpperCase();
   if (m.contains('VISA')) {
-    return const [Color(0xFF0A3D91), Color(0xFF1E5AB6)];
+    return const [AppColors.cardVisaDark, AppColors.cardVisa];
   }
   if (m.contains('AMEX') || m.contains('AMERICAN')) {
-    return const [Color(0xFF66BB6A), Color(0xFF9CCC65)];
+    return const [AppColors.successLight, AppColors.successPale];
   }
   if (m.contains('MASTER')) {
-    return const [Color(0xFFF9A825), Color(0xFFFBC02D)];
+    return const [AppColors.cardMastercard, AppColors.cardMastercardLight];
   }
   return const [AppColors.primary, AppColors.primary];
 }

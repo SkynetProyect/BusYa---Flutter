@@ -39,7 +39,7 @@ class TransactionTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: const BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: Color(0xFFE4E9E5), width: 0.8),
+          bottom: BorderSide(color: AppColors.borderSoft, width: 0.8),
         ),
       ),
       child: Row(
@@ -48,7 +48,7 @@ class TransactionTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFE7F5EE),
+              color: AppColors.surfaceMint,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(
@@ -79,7 +79,7 @@ class TransactionTile extends StatelessWidget {
                 Text(
                   fecha,
                   style: const TextStyle(
-                    color: Color(0xFF68736D),
+                    color: AppColors.textSecondary,
                     fontSize: 12,
                   ),
                 ),
@@ -93,8 +93,8 @@ class TransactionTile extends StatelessWidget {
                             : Icons.credit_card,
                         size: 12,
                         color: esEmergencia
-                            ? const Color(0xFFE57373)
-                            : const Color(0xFF68736D),
+                            ? AppColors.errorLight
+                            : AppColors.textSecondary,
                       ),
                       const SizedBox(width: 4),
                       Flexible(
@@ -103,8 +103,8 @@ class TransactionTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: esEmergencia
-                                ? const Color(0xFFE57373)
-                                : const Color(0xFF68736D),
+                                ? AppColors.errorLight
+                                : AppColors.textSecondary,
                             fontSize: 12,
                           ),
                         ),

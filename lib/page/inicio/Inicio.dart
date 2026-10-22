@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Bus.dart' show Bus;
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
@@ -301,7 +302,7 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
       _polylines = [
         flutter_map.Polyline(
           points: points,
-          color: const Color(0xFF2E7D5B),
+          color: AppColors.routeGreen,
           strokeWidth: 4,
         ),
       ];

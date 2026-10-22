@@ -121,10 +121,10 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
     const darkPurple = AppColors.primary;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7FB),
+      backgroundColor: AppColors.surface,
 
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.surfaceTransparent,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: darkPurple),
@@ -142,9 +142,9 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
           child: Container(
             padding: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.surfaceWhite,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFEBECEF)),
+              border: Border.all(color: AppColors.border),
             ),
 
             child: Column(
@@ -163,7 +163,7 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
 
                 const Text(
                   'Actualiza los datos que deseas modificar de tu perfil.',
-                  style: TextStyle(color: Colors.black54, fontSize: 14),
+                  style: TextStyle(color: AppColors.textMedium, fontSize: 14),
                 ),
 
                 const SizedBox(height: 20),
