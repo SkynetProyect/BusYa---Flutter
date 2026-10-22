@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Tarjeta.dart' show Tarjeta;
-import 'package:flutter_application_1/page/pagos/componentes/EmergencyPayment.dart';
-import 'package:flutter_application_1/page/pagos/componentes/NfcPayment.dart'
-    show NfcPayment;
+import 'package:flutter_application_1/page/pagos/componentes/NfcPaymentPanel.dart';
 import 'package:flutter_application_1/page/pagos/componentes/RegisteredCards.dart';
 import 'package:flutter_application_1/page/pagos/componentes/TopBar.dart';
-import 'package:flutter_application_1/service/rest/transaccion_nfc/TransaccionNfcService.dart';
+import 'package:flutter_application_1/service/NfcPaymentController.dart';
+import 'package:flutter_application_1/service/PasajeEmergenciaState.dart';
+import 'package:flutter_application_1/widget/nfc/emergency_debt_banner.dart';
+import 'package:flutter_application_1/widget/nfc/nfc_listen_scope.dart';
+import 'package:flutter_application_1/widget/nfcstatusbanner/NfcStatusBanner.dart';
 
 class Pagos extends StatefulWidget {
   final String idCliente;
@@ -18,73 +20,58 @@ class Pagos extends StatefulWidget {
 }
 
 class _PagosState extends State<Pagos> {
-  final TransaccionNfcService _transaccionService = TransaccionNfcService();
-
-  Tarjeta? _selectedCard;
-  Map<String, dynamic>? _pendiente;
+  late final NfcPaymentController _nfc;
   int _refreshTick = 0;
 
   @override
   void initState() {
     super.initState();
-    _cargarPendiente();
-  }
-
-  Future<void> _cargarPendiente() async {
-    final resp = await _transaccionService.getEmergenciaPendiente(
-      widget.idCliente,
+    _nfc = NfcPaymentController(
+      idCliente: widget.idCliente,
+      onPagoCompletado: () {
+        if (mounted)
+          setState(() => _refreshTick++); // recarga saldos del carrusel
+      },
     );
-    if (!mounted) return;
-    setState(() => _pendiente = resp);
-  }
-
-  void _onEmergenciaPagada() {
-    setState(() => _refreshTick++); // el carrusel recarga los saldos/tarjetas
-    _cargarPendiente();
-  }
-
-  void _onSelectedCardChanged(Tarjeta? card) {
-    if (!mounted) return;
-    setState(() => _selectedCard = card);
+    PasajeEmergenciaState.instance.cargar(widget.idCliente);
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const TopBar(),
-        Expanded(
-          child: Container(
-            color: AppColors.surface,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-              children: [
-                // 1. Mostrar condicionalmente pago de emergencia o acción NFC
-                if (_pendiente != null)
-                  EmergencyPayment(
-                    idCliente: widget.idCliente,
-                    monto: _pendiente!['monto'],
-                    selectedTarjeta: _selectedCard,
-                    onPagado: _onEmergenciaPagada,
-                  )
-                else
-                  NfcPayment(
-                    idCliente: widget.idCliente,
-                    selectedTarjeta: _selectedCard,
-                    onDeudaPendiente: _cargarPendiente,
-                  ),
+  void dispose() {
+    _nfc.dispose();
+    super.dispose();
+  }
 
-                // 2. Carrusel horizontal de tarjetas registradas
-                RegisteredCards(
-                  key: ValueKey(_refreshTick),
-                  idCliente: widget.idCliente,
-                  onSelectedChanged: _onSelectedCardChanged,
-                ),
-              ],
+  void _onSelectedCardChanged(Tarjeta? card) => _nfc.tarjeta = card;
+
+  @override
+  Widget build(BuildContext context) {
+    return NfcListenScope(
+      controller: _nfc,
+      child: Column(
+        children: [
+          const TopBar(),
+          const EmergencyDebtBanner(),
+          Expanded(
+            child: Container(
+              color: AppColors.surface,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                children: [
+                  const NfcStatusBanner(),
+
+                  NfcPaymentPanel(controller: _nfc),
+                  RegisteredCards(
+                    key: ValueKey(_refreshTick),
+                    idCliente: widget.idCliente,
+                    onSelectedChanged: _onSelectedCardChanged,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

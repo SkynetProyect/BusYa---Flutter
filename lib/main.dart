@@ -5,6 +5,7 @@ import 'package:flutter_application_1/service/notification_service.dart'
 import 'package:intl/date_symbol_data_local.dart';
 import 'app_keys.dart';
 import 'core/app_colors.dart';
+import 'core/route_observer.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_listener.dart';
 import 'page/auth/login_page.dart';
@@ -59,6 +60,7 @@ class Main extends StatelessWidget {
 
     return MaterialApp(
       navigatorKey: navigatorKey,
+      navigatorObservers: [routeObserver], // <- nuevo: NFC sabe cuándo lo tapan
       title: 'BusYa',
       home: session == null ? const LoginPage() : const Application(),
       theme: ThemeData(

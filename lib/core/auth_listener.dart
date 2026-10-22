@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../app_keys.dart';
 import '../page/Home.dart';
 import '../page/auth/login_page.dart';
+import '../service/PasajeEmergenciaState.dart';
 import 'supabase_client.dart';
 import '../page/auth/update_password_page.dart';
 
@@ -33,6 +34,7 @@ class AuthListener {
           break;
         case AuthChangeEvent.signedOut:
         case AuthChangeEvent.userDeleted:
+          PasajeEmergenciaState.instance.reset(); // <- nuevo
           navigatorKey.currentState?.pushAndRemoveUntil(
             MaterialPageRoute(builder: (_) => const LoginPage()),
             (route) => false,
