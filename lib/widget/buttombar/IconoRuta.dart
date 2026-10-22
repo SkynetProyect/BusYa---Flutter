@@ -13,12 +13,12 @@ class IconoRuta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSelected = selectedIndex == 2;
+    final bool isSelected = selectedIndex == 3;
     const activeColor = AppColors.primary;
     const inactiveColor = AppColors.iconInactive;
 
     return InkWell(
-      onTap: () => callbackfunction(2),
+      onTap: () => callbackfunction(3),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         height: 50,
