@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
+import 'package:flutter_application_1/page/pagos/componentes/NfcPaymentPanel.dart';
+import 'package:flutter_application_1/service/NfcPaymentController.dart';
+import 'package:flutter_application_1/service/PasajeEmergenciaState.dart';
+import 'package:flutter_application_1/widget/nfc/emergency_debt_banner.dart';
+import 'package:flutter_application_1/widget/nfc/nfc_listen_scope.dart';
 import '../../../model/Tarjeta.dart';
 import '../../../model/TransaccionNfc.dart';
 import '../../../service/rest/transaccion_nfc/TransaccionNfcService.dart';
-import '../../widget/nfcstatusbanner/NfcStatusBanner.dart';
 import '../../widget/registeredcardvisual/RegisteredCardVisual.dart';
 import '../../widget/transactiontile/TransactionTile.dart';
+import 'package:flutter_application_1/widget/nfcstatusbanner/NfcStatusBanner.dart';
 
 class CardDetailHistoryPage extends StatefulWidget {
   final String idCliente;
@@ -24,11 +29,27 @@ class CardDetailHistoryPage extends StatefulWidget {
 class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
   final _transaccionService = TransaccionNfcService();
   late Future<List<TransaccionNfc>> _futureTransacciones;
+  late final NfcPaymentController _nfc;
 
   @override
   void initState() {
     super.initState();
     _futureTransacciones = _cargar();
+    _nfc = NfcPaymentController(
+      idCliente: widget.idCliente,
+      onPagoCompletado: () {
+        if (mounted) _refrescar(); // el pago nuevo aparece en la lista
+      },
+    )..tarjeta = widget.tarjeta;
+    PasajeEmergenciaState.instance.cargar(
+      widget.idCliente,
+    ); // ya cacheado si vienes de Pagos
+  }
+
+  @override
+  void dispose() {
+    _nfc.dispose();
+    super.dispose();
   }
 
   Future<List<TransaccionNfc>> _cargar() {
@@ -48,78 +69,97 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.surface,
-      appBar: AppBar(
+    return NfcListenScope(
+      controller: _nfc,
+      child: Scaffold(
         backgroundColor: AppColors.surface,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.primary),
-        title: Text(
-          widget.tarjeta.nombreTitular,
-          style: const TextStyle(color: AppColors.text),
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          elevation: 0,
+          iconTheme: const IconThemeData(color: AppColors.primary),
+          title: Text(
+            widget.tarjeta.nombreTitular,
+            style: const TextStyle(color: AppColors.text),
+          ),
         ),
-      ),
-      body: RefreshIndicator(
-        color: AppColors.green,
-        onRefresh: _refrescar,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
+        body: Column(
           children: [
-            const NfcStatusBanner(),
+            const EmergencyDebtBanner(), // debajo del appbar, sin cerrar
+            Expanded(
+              child: RefreshIndicator(
+                color: AppColors.green,
+                onRefresh: _refrescar,
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    const NfcStatusBanner(),
+                    NfcPaymentPanel(controller: _nfc),
 
-            RegisteredCardVisual(tarjeta: widget.tarjeta, selected: true),
+                    RegisteredCardVisual(
+                      tarjeta: widget.tarjeta,
+                      selected: true,
+                    ),
 
-            const SizedBox(height: 24),
-            const Text(
-              'Transacciones',
-              style: TextStyle(
-                color: AppColors.text,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Transacciones',
+                      style: TextStyle(
+                        color: AppColors.text,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    FutureBuilder<List<TransaccionNfc>>(
+                      future: _futureTransacciones,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 32),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.green,
+                              ),
+                            ),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return const _Mensaje(
+                            'No se pudo cargar el historial',
+                          );
+                        }
+                        final lista = snapshot.data ?? const <TransaccionNfc>[];
+                        if (lista.isEmpty) {
+                          return const _Mensaje(
+                            'No hay transacciones registradas con esta tarjeta',
+                          );
+                        }
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceWhite,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            padding: EdgeInsets.zero,
+                            itemCount: lista.length,
+                            itemBuilder: (_, i) => TransactionTile(
+                              transaccion: lista[i],
+                              mostrarTarjeta: false,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 12),
-
-            FutureBuilder<List<TransaccionNfc>>(
-              future: _futureTransacciones,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Center(
-                      child: CircularProgressIndicator(color: AppColors.green),
-                    ),
-                  );
-                }
-                if (snapshot.hasError) {
-                  return const _Mensaje('No se pudo cargar el historial');
-                }
-                final lista = snapshot.data ?? const <TransaccionNfc>[];
-                if (lista.isEmpty) {
-                  return const _Mensaje(
-                    'No hay transacciones registradas con esta tarjeta',
-                  );
-                }
-
-                return Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceWhite,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    itemCount: lista.length,
-                    itemBuilder: (_, i) => TransactionTile(
-                      transaccion: lista[i],
-                      mostrarTarjeta: false,
-                    ),
-                  ),
-                );
-              },
             ),
           ],
         ),
