@@ -19,6 +19,8 @@ migrate_working_dir/
 .idea/
 *.tar
 *.gz
+env.json
+.env
 node_modules/
 **/flutter/ephemeral/
 # The .vscode folder contains launch configuration and tasks you configure in
