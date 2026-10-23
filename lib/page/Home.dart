@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/service/PasajeEmergenciaState.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -11,7 +10,6 @@ import 'package:flutter_application_1/page/pagos/Pagos.dart';
 import 'package:flutter_application_1/page/perfil/Perfil.dart';
 import 'package:flutter_application_1/page/rutas/Rutas.dart';
 import 'package:flutter_application_1/widget/buttombar/BarraNavegacion.dart';
-import 'package:flutter_application_1/page/puntos/puntos_eco_screen.dart';
 import 'package:flutter_application_1/page/historial/Historial.dart';
 
 class Application extends StatefulWidget {
@@ -33,7 +31,6 @@ class _Home extends State<Application> {
       if (!mounted) return;
       final nuevoId = authState.session?.user.id;
       if (nuevoId != _idCliente) {
-        // Otro usuario o sesión cerrada: se descarta la deuda en memoria.
         PasajeEmergenciaState.instance.reset();
       }
       setState(() => _idCliente = nuevoId);
@@ -48,11 +45,10 @@ class _Home extends State<Application> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final id = _idCliente ?? '';
     final hayUsuario = id.isNotEmpty;
 
-    // Cada pestaña se destruye al cambiar, así que el NFC de Pagos
-    // solo está activo mientras esa pestaña es la visible.
     final List<Widget> pantalla = [
       Inicio(),
       hayUsuario
@@ -64,37 +60,29 @@ class _Home extends State<Application> {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 75.0),
-        child: FloatingActionButton.extended(
-          heroTag: 'btnPuntosEco',
-          backgroundColor: AppColors.greenDark,
-          icon: const Icon(Icons.eco, color: AppColors.green),
-          label: const Text(
-            'Puntos Eco',
-            style: TextStyle(
-              color: AppColors.surfaceWhite,
-              fontWeight: FontWeight.bold,
+      backgroundColor: theme.scaffoldBackgroundColor,
+      // Usamos un Stack para encimar la barra flotante sobre el contenido
+      body: Stack(
+        children: [
+          // 1. Pantalla visible
+          Positioned.fill(child: pantalla[_selectedIndex]),
+
+          // 2. Barra de navegación flotante pegada abajo
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: BarraNavegacion(
+                selectedIndex: _selectedIndex,
+                callbackfunction: (numero) {
+                  setState(() => _selectedIndex = numero);
+                },
+              ),
             ),
           ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PuntosEcoScreen()),
-            );
-          },
-        ),
-      ),
-      body: SafeArea(bottom: false, child: pantalla[_selectedIndex]),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: BarraNavegacion(
-          selectedIndex: _selectedIndex,
-          callbackfunction: (numero) {
-            setState(() => _selectedIndex = numero);
-          },
-        ),
+        ],
       ),
     );
   }

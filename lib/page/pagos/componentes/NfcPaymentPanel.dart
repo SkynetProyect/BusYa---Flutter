@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import '../../../service/NfcPaymentController.dart';
 import '../../../widget/nfc/wallet_nfc_indicator.dart';
 import 'package:flutter_application_1/core/format.dart';
@@ -41,15 +40,17 @@ class NfcPaymentPanel extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: controller,
     builder: (_, __) {
+      final theme = Theme.of(context);
+      final colors = theme.colorScheme;
       final (titulo, detalle) = _textos();
       return Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
+          color: theme.cardTheme.color ?? colors.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: theme.dividerColor),
         ),
         child: Column(
           children: [
@@ -65,18 +66,18 @@ class NfcPaymentPanel extends StatelessWidget {
                 children: [
                   Text(
                     titulo,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: colors.primary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     detalle,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.textMedium,
+                    style: TextStyle(
+                      color: colors.onSurfaceVariant,
                       fontSize: 13,
                     ),
                   ),

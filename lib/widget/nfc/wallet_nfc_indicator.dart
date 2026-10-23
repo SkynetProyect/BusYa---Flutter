@@ -23,32 +23,33 @@ class _WalletNfcIndicatorState extends State<WalletNfcIndicator>
     super.dispose();
   }
 
-  (Color bg, Color fg, IconData icon) get _look => switch (widget.state) {
+  (Color bg, Color fg, IconData icon) _look(ColorScheme colors) => switch (widget.state) {
     NfcUiState.idle || NfcUiState.processing => (
-      const Color(0xFF1F1F1F),
-      Colors.white,
+      colors.surface,
+      colors.onSurface,
       Icons.nfc_rounded,
     ),
     NfcUiState.success || NfcUiState.successWithDebt => (
-      const Color(0xFFA8C7FA),
-      const Color(0xFF0842A0),
+      colors.primary,
+      colors.onPrimary,
       Icons.check_rounded,
     ),
     NfcUiState.emergency => (
-      const Color(0xFFFFDDB3),
-      const Color(0xFF7A4A00),
+      colors.secondary,
+      colors.onSecondary,
       Icons.check_rounded,
     ),
     NfcUiState.rejected || NfcUiState.error => (
-      const Color(0xFFF9DEDC),
-      const Color(0xFFB3261E),
+      colors.error,
+      colors.onError,
       Icons.close_rounded,
     ),
   };
 
   @override
   Widget build(BuildContext context) {
-    final (bg, fg, icon) = _look;
+    final colors = Theme.of(context).colorScheme;
+    final (bg, fg, icon) = _look(colors);
     final s = widget.state;
     final ok =
         s == NfcUiState.success ||
@@ -96,16 +97,16 @@ class _WalletNfcIndicatorState extends State<WalletNfcIndicator>
               animation: _ripple,
               builder: (_, __) => CustomPaint(
                 size: Size.square(widget.size),
-                painter: _RipplePainter(_ripple.value, const Color(0xFF4285F4)),
+                painter: _RipplePainter(_ripple.value, colors.primary),
               ),
             ),
           if (s == NfcUiState.processing)
             SizedBox(
               width: dot + 18,
               height: dot + 18,
-              child: const CircularProgressIndicator(
+              child: CircularProgressIndicator(
                 strokeWidth: 3,
-                color: Color(0xFF4285F4),
+                color: colors.primary,
               ),
             ),
           circle,

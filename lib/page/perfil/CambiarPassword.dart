@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import '../../core/utils/validators.dart';
 import '../../service/rest/auth/auth_repository.dart';
 import '../../service/rest/auth/auth_repository_impl.dart.dart';
@@ -88,7 +87,7 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -98,6 +97,7 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
     required bool fulfilled,
     required String text,
   }) {
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
@@ -105,14 +105,14 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
           Icon(
             fulfilled ? Icons.check_circle : Icons.radio_button_unchecked,
             size: 17,
-            color: fulfilled ? AppColors.success : AppColors.textLight,
+            color: fulfilled ? colors.primary : colors.onSurfaceVariant,
           ),
           const SizedBox(width: 8),
           Text(
             text,
             style: TextStyle(
               fontSize: 13,
-              color: fulfilled ? AppColors.success : AppColors.textMedium,
+              color: fulfilled ? colors.primary : colors.onSurfaceVariant,
               fontWeight: fulfilled ? FontWeight.w600 : FontWeight.normal,
             ),
           ),
@@ -122,6 +122,8 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
   }
 
   Widget _buildPasswordStrength() {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final password = _passwordController.text;
 
     if (password.isEmpty) {
@@ -151,9 +153,9 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: theme.cardTheme.color ?? colors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,12 +163,12 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Seguridad de la contraseña',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textDark,
+                  color: colors.onSurface,
                 ),
               ),
               Text(
@@ -175,10 +177,10 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                   color: strengthText == 'Fuerte'
-                      ? AppColors.success
+                      ? colors.primary
                       : strengthText == 'Media'
-                      ? AppColors.warning
-                      : AppColors.error,
+                      ? colors.tertiary
+                      : colors.error,
                 ),
               ),
             ],
@@ -191,13 +193,13 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
             child: LinearProgressIndicator(
               value: strength,
               minHeight: 7,
-              backgroundColor: AppColors.neutralTrack,
+              backgroundColor: colors.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(
                 strengthText == 'Fuerte'
-                    ? AppColors.success
+                    ? colors.primary
                     : strengthText == 'Media'
-                    ? AppColors.warning
-                    : AppColors.error,
+                    ? colors.tertiary
+                    : colors.error,
               ),
             ),
           ),
@@ -228,20 +230,21 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    const darkPurple = AppColors.primary;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceTransparent,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: darkPurple),
+          icon: Icon(Icons.arrow_back_ios, color: colors.primary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Cambiar contraseña',
-          style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold),
+          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: SafeArea(
@@ -250,25 +253,25 @@ class _CambiarPasswordPageState extends State<CambiarPasswordPage> {
           child: Container(
             padding: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
+              color: theme.cardTheme.color ?? colors.surface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Nueva contraseña',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: darkPurple,
+                    color: colors.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'Ingresa y confirma tu nueva contraseña.',
-                  style: TextStyle(color: AppColors.textMedium, fontSize: 14),
+                  style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
 

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 
-/// Reusable ListTile adaptado al diseño de la interfaz
 class PerfilOptionTile extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -22,32 +20,42 @@ class PerfilOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? AppColors.textTertiary),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+      leading: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: colors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, color: iconColor ?? colors.primary, size: 21),
+      ),
       title: Text(
         title,
-        style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: titleColor,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: titleColor ?? colors.onSurface,
         ),
       ),
       subtitle: subtitle != null
           ? Text(
               subtitle!,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondaryMuted,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
               ),
             )
           : null,
-      trailing: const Icon(
-        Icons.arrow_forward_ios_rounded,
-        size: 16,
-        color: AppColors.textMuted,
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        size: 23,
+        color: colors.onSurfaceVariant,
       ),
       onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
     );
   }
 }

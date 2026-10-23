@@ -13,13 +13,17 @@ class IconoPago extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSelected = selectedIndex == 1;
-    const activeColor = AppColors.primary;
-    const inactiveColor = AppColors.iconInactive;
+    final isSelected = selectedIndex == 1;
+    final theme = Theme.of(context);
+    final activeColor = theme.colorScheme.primary;
+    final inactiveColor = theme.brightness == Brightness.light
+        ? AppColors.textBlack
+        : AppColors.surfaceWhite;
 
     return InkWell(
       onTap: () => callbackfunction(1),
       borderRadius: BorderRadius.circular(12),
+      overlayColor: const WidgetStatePropertyAll(Colors.transparent),
       child: Container(
         height: 50,
         width: 50,

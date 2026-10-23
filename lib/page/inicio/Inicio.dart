@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Bus.dart' show Bus;
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
@@ -15,7 +14,7 @@ import 'package:flutter_application_1/page/inicio/componentes/OccupancyFormater.
 import 'package:flutter_application_1/page/inicio/componentes/PolylineDecoder.dart'
     show PolylineDecoder;
 import 'package:flutter_application_1/page/inicio/componentes/RouteSelectorBar.dart';
-import 'package:flutter_application_1/page/inicio/componentes/TopBar.dart';
+import 'package:flutter_application_1/widget/app_top_bar.dart';
 import 'package:flutter_application_1/page/inicio/componentes/UserLocationMaker.dart'
     show UserLocationMarker;
 import 'package:flutter_application_1/page/inicio/persistence/SelectionStorageService.dart'
@@ -328,7 +327,7 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
       _polylines = [
         flutter_map.Polyline(
           points: points,
-          color: AppColors.routeGreen,
+          color: Theme.of(context).colorScheme.primary,
           strokeWidth: 4,
         ),
       ];
@@ -526,7 +525,10 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
       ),
       builder: (_) => BusInfoSheet(
         bus: bus,
-        markerColor: OccupancyFormatter.color(bus.nivelOcupacion),
+        markerColor: OccupancyFormatter.themedColor(
+          bus.nivelOcupacion,
+          Theme.of(context).colorScheme,
+        ),
         ocupacionTexto: OccupancyFormatter.label(bus.nivelOcupacion),
         rutaNombre: _rutaSeleccionada?.nombre,
       ),
@@ -537,9 +539,13 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
-        const TopBar(),
+        AppTopBar(
+          title: '¿Para dónde vas?',
+          subtitle: 'Sigue tu bus en tiempo real',
+        ),
         Expanded(
           child: Stack(
             children: [
@@ -568,12 +574,15 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
               ),
               Positioned(
                 right: 16,
-                bottom: 16,
+                bottom: MediaQuery.of(context).padding.bottom + 76,
                 child: FloatingActionButton.small(
                   heroTag: 'btn_centrar_usuario',
                   tooltip: 'Mi ubicación',
                   onPressed: _centrarEnUsuario,
-                  child: const Icon(Icons.my_location),
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  elevation: 6,
+                  child: Icon(Icons.my_location, color: colorScheme.onPrimary),
                 ),
               ),
             ],

@@ -1,5 +1,5 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/widget/buttombar/IconoInicio.dart'
     show IconoInicio;
 import 'package:flutter_application_1/widget/buttombar/IconoPago.dart'
@@ -23,50 +23,62 @@ class BarraNavegacion extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 70,
-      alignment: Alignment.center,
-      margin: const EdgeInsets.only(bottom: 24, left: 16, right: 16),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 430),
-        height: 62,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: AppColors.border, width: 1.2),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.shadow.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-              spreadRadius: 0,
+    final theme = Theme.of(context);
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final surfaceColor = theme.colorScheme.surface;
+
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          decoration: BoxDecoration(
+            // Degradado dinámico basado en la superficie del tema actual (claro/oscuro)
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                surfaceColor.withValues(alpha: 0.65),
+                surfaceColor.withValues(alpha: 0.88),
+              ],
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            IconoInicio(
-              selectedIndex: selectedIndex,
-              callbackfunction: callbackfunction,
+            // Borde superior usando el dividerColor del Theme
+            border: Border(
+              top: BorderSide(
+                color: theme.dividerColor.withValues(alpha: 0.4),
+                width: 0.5,
+              ),
             ),
-            IconoPago(
-              selectedIndex: selectedIndex,
-              callbackfunction: callbackfunction,
+          ),
+          child: SizedBox(
+            height: 60,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                IconoInicio(
+                  selectedIndex: selectedIndex,
+                  callbackfunction: callbackfunction,
+                ),
+                IconoPago(
+                  selectedIndex: selectedIndex,
+                  callbackfunction: callbackfunction,
+                ),
+                IconoRuta(
+                  selectedIndex: selectedIndex,
+                  callbackfunction: callbackfunction,
+                ),
+                IconoHistorial(
+                  selectedIndex: selectedIndex,
+                  callbackfunction: callbackfunction,
+                ),
+                IconoPerfil(
+                  selectedIndex: selectedIndex,
+                  callbackfunction: callbackfunction,
+                ),
+              ],
             ),
-            IconoRuta(
-              selectedIndex: selectedIndex,
-              callbackfunction: callbackfunction,
-            ),
-            IconoHistorial(
-              selectedIndex: selectedIndex,
-              callbackfunction: callbackfunction,
-            ),
-            IconoPerfil(
-              selectedIndex: selectedIndex,
-              callbackfunction: callbackfunction,
-            ),
-          ],
+          ),
         ),
       ),
     );

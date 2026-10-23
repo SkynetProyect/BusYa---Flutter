@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Tarjeta.dart' show Tarjeta;
 import 'package:flutter_application_1/page/pagos/componentes/NfcPaymentPanel.dart';
 import 'package:flutter_application_1/page/pagos/componentes/RegisteredCards.dart';
-import 'package:flutter_application_1/page/pagos/componentes/TopBar.dart';
+import 'package:flutter_application_1/widget/app_top_bar.dart';
 import 'package:flutter_application_1/service/NfcPaymentController.dart';
 import 'package:flutter_application_1/service/PasajeEmergenciaState.dart';
 import 'package:flutter_application_1/widget/nfc/emergency_debt_banner.dart';
@@ -46,15 +45,19 @@ class _PagosState extends State<Pagos> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return NfcListenScope(
       controller: _nfc,
       child: Column(
         children: [
-          const TopBar(),
+          AppTopBar(
+            title: 'Pagos',
+            subtitle: 'Pago sin contacto con tu tarjeta',
+          ),
           const EmergencyDebtBanner(),
           Expanded(
             child: Container(
-              color: AppColors.surface,
+              color: theme.scaffoldBackgroundColor,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
                 children: [

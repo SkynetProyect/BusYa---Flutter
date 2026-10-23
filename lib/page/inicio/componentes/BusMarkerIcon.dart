@@ -20,7 +20,10 @@ class BusMarkerIcon extends StatelessWidget {
             '${bus.placa}: ${OccupancyFormatter.label(bus.nivelOcupacion)}',
         child: Icon(
           Icons.directions_bus,
-          color: OccupancyFormatter.color(bus.nivelOcupacion),
+          color: OccupancyFormatter.themedColor(
+            bus.nivelOcupacion,
+            Theme.of(context).colorScheme,
+          ),
           size: 30,
         ),
       ),

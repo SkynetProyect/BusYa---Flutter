@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_1/model/Tarjeta.dart';
 import 'package:flutter_application_1/core/supabase_client.dart';
@@ -27,8 +26,6 @@ class AddCardDialog extends StatefulWidget {
 }
 
 class _AddCardDialogState extends State<AddCardDialog> {
-  static const green = AppColors.primary;
-
   final _formKey = GlobalKey<FormState>();
   final _tarjetaService = TarjetaService();
 
@@ -142,14 +139,15 @@ class _AddCardDialogState extends State<AddCardDialog> {
       );
       if (mounted) Navigator.of(context).pop(creada);
     } catch (e) {
-      // TarjetaService ya muestra su propio popup de error.
-      // Solo detenemos el loading para que el usuario pueda reintentar.
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return AlertDialog(
       title: const Text('Registrar nueva tarjeta'),
       content: Form(
@@ -199,8 +197,8 @@ class _AddCardDialogState extends State<AddCardDialog> {
                       final marca = _detectMarca(value.text);
                       return Text(
                         'Marca detectada: ${marca.isEmpty ? '- -' : marca}',
-                        style: const TextStyle(
-                          color: AppColors.textMedium,
+                        style: TextStyle(
+                          color: colors.onSurface.withOpacity(0.7),
                           fontSize: 12,
                           fontStyle: FontStyle.italic,
                         ),
@@ -236,20 +234,16 @@ class _AddCardDialogState extends State<AddCardDialog> {
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _handleSubmit,
-          style: ElevatedButton.styleFrom(backgroundColor: green),
           child: _isLoading
-              ? const SizedBox(
+              ? SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: AppColors.surfaceWhite,
+                    color: colors.onPrimary,
                   ),
                 )
-              : const Text(
-                  'Guardar',
-                  style: TextStyle(color: AppColors.surfaceWhite),
-                ),
+              : const Text('Guardar'),
         ),
       ],
     );

@@ -16,6 +16,7 @@ class RegisteredCardVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final colors = _brandGradientFor(tarjeta.marca);
     return Container(
       width: double.infinity,
@@ -30,7 +31,7 @@ class RegisteredCardVisual extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.shadowSoft.withValues(
+            color: theme.shadowColor.withValues(
               alpha: selected ? 0.35 : 0.15,
             ),
             blurRadius: selected ? 14 : 6,
@@ -39,7 +40,7 @@ class RegisteredCardVisual extends StatelessWidget {
         ],
         border: selected
             ? Border.all(
-                color: AppColors.surfaceWhite.withValues(alpha: 0.8),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                 width: 1.2,
               )
             : null,
@@ -127,8 +128,8 @@ class RegisteredCardVisual extends StatelessWidget {
                   icon: Icon(
                     Icons.delete_outline,
                     color: tarjeta.id == null
-                        ? AppColors.errorAccent.withValues(alpha: 0.4)
-                        : AppColors.errorAccent,
+                        ? theme.colorScheme.error.withValues(alpha: 0.4)
+                        : theme.colorScheme.error,
                   ),
                   tooltip: 'Eliminar tarjeta',
                   onPressed: tarjeta.id == null ? null : onDelete,

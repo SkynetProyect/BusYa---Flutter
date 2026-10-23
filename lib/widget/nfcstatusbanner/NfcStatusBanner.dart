@@ -55,13 +55,15 @@ class _NfcStatusBannerState extends State<NfcStatusBanner>
   Widget build(BuildContext context) {
     if (_estado == NfcAvailability.enabled) return const SizedBox.shrink();
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = Theme.of(context).colorScheme;
     final noSoportado = _estado == NfcAvailability.unsupported;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMint,
+        color: isDark ? AppColors.darkSurfaceGreen : AppColors.surfaceMint,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -69,18 +71,14 @@ class _NfcStatusBannerState extends State<NfcStatusBanner>
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.info_outline,
-                color: AppColors.primary,
-                size: 20,
-              ),
+              Icon(Icons.info_outline, color: colors.primary, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   noSoportado
                       ? 'Este dispositivo no es compatible con NFC'
                       : 'Activa el NFC para pagar tus pasajes',
-                  style: const TextStyle(color: AppColors.text, fontSize: 14),
+                  style: TextStyle(color: colors.onSurface, fontSize: 14),
                 ),
               ),
             ],
@@ -89,10 +87,10 @@ class _NfcStatusBannerState extends State<NfcStatusBanner>
             const SizedBox(height: 8),
             TextButton(
               onPressed: _abrirAjustesNfc,
-              child: const Text(
+              child: Text(
                 'Activar NFC',
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: colors.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),

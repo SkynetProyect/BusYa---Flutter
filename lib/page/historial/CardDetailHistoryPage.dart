@@ -5,12 +5,13 @@ import 'package:flutter_application_1/service/NfcPaymentController.dart';
 import 'package:flutter_application_1/service/PasajeEmergenciaState.dart';
 import 'package:flutter_application_1/widget/nfc/emergency_debt_banner.dart';
 import 'package:flutter_application_1/widget/nfc/nfc_listen_scope.dart';
+import 'package:flutter_application_1/widget/nfcstatusbanner/NfcStatusBanner.dart';
+import '../../../model/EntradaHistorial.dart';
 import '../../../model/Tarjeta.dart';
 import '../../../model/TransaccionNfc.dart';
 import '../../../service/rest/transaccion_nfc/TransaccionNfcService.dart';
 import '../../widget/registeredcardvisual/RegisteredCardVisual.dart';
-import '../../widget/transactiontile/TransactionTile.dart';
-import 'package:flutter_application_1/widget/nfcstatusbanner/NfcStatusBanner.dart';
+import '../../widget/transactiontile/EntradaHistorialTile.dart';
 
 class CardDetailHistoryPage extends StatefulWidget {
   final String idCliente;
@@ -95,12 +96,10 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
                   children: [
                     const NfcStatusBanner(),
                     NfcPaymentPanel(controller: _nfc),
-
                     RegisteredCardVisual(
                       tarjeta: widget.tarjeta,
                       selected: true,
                     ),
-
                     const SizedBox(height: 24),
                     const Text(
                       'Transacciones',
@@ -111,7 +110,6 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-
                     FutureBuilder<List<TransaccionNfc>>(
                       future: _futureTransacciones,
                       builder: (context, snapshot) {
@@ -138,6 +136,9 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
                           );
                         }
 
+                        // Una fila de emergencia pagada pasa a ser dos entradas.
+                        final entradas = expandirHistorial(lista);
+
                         return Container(
                           decoration: BoxDecoration(
                             color: AppColors.surfaceWhite,
@@ -148,9 +149,9 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             padding: EdgeInsets.zero,
-                            itemCount: lista.length,
-                            itemBuilder: (_, i) => TransactionTile(
-                              transaccion: lista[i],
+                            itemCount: entradas.length,
+                            itemBuilder: (_, i) => EntradaHistorialTile(
+                              entrada: entradas[i],
                               mostrarTarjeta: false,
                             ),
                           ),

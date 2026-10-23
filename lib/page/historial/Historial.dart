@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
-import 'package:flutter_application_1/page/historial/componentes/TopBar.dart';
+import 'package:flutter_application_1/widget/app_top_bar.dart';
+import '../../../model/EntradaHistorial.dart';
 import '../../../model/TransaccionNfc.dart';
 import '../../../service/rest/transaccion_nfc/TransaccionNfcService.dart';
-import '../../widget/transactiontile/TransactionTile.dart';
+import '../../widget/transactiontile/EntradaHistorialTile.dart';
 
 class Historial extends StatefulWidget {
   final String idCliente;
@@ -38,14 +38,18 @@ class _Historial extends State<Historial> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Column(
         children: [
-          const TopBar(),
+          AppTopBar(
+            title: 'Historial',
+            subtitle: 'Consulta tus transacciones anteriores',
+          ),
           Expanded(
             child: RefreshIndicator(
-              color: AppColors.green,
+              color: theme.colorScheme.primary,
               onRefresh: _refrescar,
               child: FutureBuilder<List<TransaccionNfc>>(
                 future: _futureTransacciones,
@@ -53,12 +57,13 @@ class _Historial extends State<Historial> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      children: const [
+                      padding: const EdgeInsets.only(bottom: 110),
+                      children: [
                         SizedBox(
                           height: 300,
                           child: Center(
                             child: CircularProgressIndicator(
-                              color: AppColors.green,
+                              color: theme.colorScheme.primary,
                             ),
                           ),
                         ),
@@ -75,13 +80,16 @@ class _Historial extends State<Historial> {
                     return _estadoVacio('Aún no registras pasajes pagados');
                   }
 
+                  // Una fila de emergencia pagada pasa a ser dos entradas.
+                  final entradas = expandirHistorial(lista);
+
                   return ListView(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceWhite,
+                          color: theme.colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         clipBehavior: Clip.antiAlias,
@@ -89,9 +97,9 @@ class _Historial extends State<Historial> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           padding: EdgeInsets.zero,
-                          itemCount: lista.length,
+                          itemCount: entradas.length,
                           itemBuilder: (_, i) =>
-                              TransactionTile(transaccion: lista[i]),
+                              EntradaHistorialTile(entrada: entradas[i]),
                         ),
                       ),
                     ],
@@ -109,11 +117,15 @@ class _Historial extends State<Historial> {
   Widget _estadoVacio(String texto) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 110),
       children: [
         SizedBox(
           height: 300,
           child: Center(
-            child: Text(texto, style: const TextStyle(color: AppColors.text)),
+            child: Text(
+              texto,
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
           ),
         ),
       ],

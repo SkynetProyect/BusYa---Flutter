@@ -17,6 +17,8 @@ class TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final dividerColor = Theme.of(context).dividerColor;
     final nombreRuta = (transaccion.nombreRuta?.trim().isNotEmpty ?? false)
         ? transaccion.nombreRuta!.trim()
         : 'Ruta Urbana';
@@ -37,10 +39,8 @@ class TransactionTile extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.borderSoft, width: 0.8),
-        ),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: dividerColor, width: 0.8)),
       ),
       child: Row(
         children: [
@@ -48,13 +48,15 @@ class TransactionTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: AppColors.surfaceMint,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkSurfaceGreen
+                  : AppColors.surfaceMint,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 Icons.directions_bus,
-                color: AppColors.primary,
+                color: colors.primary,
                 size: 22,
               ),
             ),
@@ -68,8 +70,8 @@ class TransactionTile extends StatelessWidget {
                   nombreRuta.toUpperCase(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: AppColors.text,
+                  style: TextStyle(
+                    color: colors.onSurface,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                     letterSpacing: 0.5,
@@ -78,8 +80,8 @@ class TransactionTile extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   fecha,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
+                  style: TextStyle(
+                    color: colors.onSurface.withValues(alpha: 0.72),
                     fontSize: 12,
                   ),
                 ),
@@ -93,7 +95,7 @@ class TransactionTile extends StatelessWidget {
                             : Icons.credit_card,
                         size: 12,
                         color: esEmergencia
-                            ? AppColors.errorLight
+                            ? colors.error
                             : AppColors.textSecondary,
                       ),
                       const SizedBox(width: 4),
@@ -103,8 +105,8 @@ class TransactionTile extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: esEmergencia
-                                ? AppColors.errorLight
-                                : AppColors.textSecondary,
+                                ? colors.error
+                                : colors.onSurface.withValues(alpha: 0.72),
                             fontSize: 12,
                           ),
                         ),
@@ -117,8 +119,8 @@ class TransactionTile extends StatelessWidget {
           ),
           Text(
             'COP ${NumberFormat('#,##0', 'es_CO').format(transaccion.monto)}',
-            style: const TextStyle(
-              color: AppColors.primary,
+            style: TextStyle(
+              color: colors.primary,
               fontWeight: FontWeight.bold,
               fontSize: 15,
             ),

@@ -14,92 +14,104 @@ class PerfilAccionesCard extends StatelessWidget {
   });
 
   Widget _accion({
+    required BuildContext context,
+
     required IconData icon,
     required String title,
     required VoidCallback onTap,
-    Color color = AppColors.primary,
+    bool isDestructive = false,
   }) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      leading: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: color == AppColors.error
-              ? AppColors.surfaceError
-              : AppColors.surfaceLavender,
-          borderRadius: BorderRadius.circular(12),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final actionColor = isDestructive ? AppColors.error : colors.primary;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 9),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDestructive
+                      ? AppColors.error.withValues(alpha: 0.10)
+                      : colors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(icon, color: actionColor, size: 21),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: isDestructive ? AppColors.error : colors.onSurface,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 23,
+                color: colors.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
-        child: Icon(icon, color: color, size: 21),
       ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: color == AppColors.error
-              ? AppColors.error
-              : AppColors.textDark,
-        ),
-      ),
-      trailing: const Icon(
-        Icons.arrow_forward_ios_rounded,
-        size: 15,
-        color: AppColors.textMuted,
-      ),
-      onTap: onTap,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surfaceWhite,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: const BorderSide(color: AppColors.border),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 15, 18, 10),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.65)),
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Cuenta',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Cuenta',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w700,
             ),
-
-            const SizedBox(height: 8),
-
-            _accion(
-              icon: Icons.lock_outline,
-              title: 'Cambiar contraseña',
-              onTap: onChangePassword,
-            ),
-
-            const Divider(height: 1, color: AppColors.border),
-
-            _accion(
-              icon: Icons.logout,
-              title: 'Cerrar sesión',
-              onTap: onLogout,
-            ),
-
-            const Divider(height: 1, color: AppColors.border),
-
-            _accion(
-              icon: Icons.delete_outline,
-              title: 'Eliminar cuenta',
-              color: AppColors.error,
-              onTap: onDeleteAccount,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          _accion(
+            context: context,
+            icon: Icons.lock_outline_rounded,
+            title: 'Cambiar contraseña',
+            onTap: onChangePassword,
+          ),
+          Divider(height: 1, color: theme.dividerColor),
+          _accion(
+            context: context,
+            icon: Icons.logout_rounded,
+            title: 'Cerrar sesión',
+            onTap: onLogout,
+          ),
+          Divider(height: 1, color: theme.dividerColor),
+          _accion(
+            context: context,
+            icon: Icons.delete_outline_rounded,
+            title: 'Eliminar cuenta',
+            onTap: onDeleteAccount,
+            isDestructive: true,
+          ),
+        ],
       ),
     );
   }

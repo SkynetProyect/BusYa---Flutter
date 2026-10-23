@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/widget/registeredcardvisual/RegisteredCardVisual.dart';
 
 import 'package:flutter_application_1/model/Tarjeta.dart';
@@ -33,8 +32,6 @@ class _RegisteredCardsState extends State<RegisteredCards> {
   final PageController _pageController = PageController(viewportFraction: 0.85);
   int _currentIndex = 0;
   List<Tarjeta> _tarjetas = const [];
-
-  static const green = AppColors.primary;
 
   @override
   void initState() {
@@ -154,9 +151,9 @@ class _RegisteredCardsState extends State<RegisteredCards> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
+            child: Text(
               'Eliminar',
-              style: TextStyle(color: AppColors.error),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
           ),
         ],
@@ -172,7 +169,6 @@ class _RegisteredCardsState extends State<RegisteredCards> {
       await _tarjetaService.delete(tarjeta.id!);
       debugPrint('[CARD DEBUG UI] Eliminación OK. Refrescando listas');
       if (!mounted) return;
-      // Recarga y, al terminar, avisa la nueva selección (o null si no quedan)
       _refresh();
       widget.onCardsChanged?.call();
       ScaffoldMessenger.of(
@@ -180,7 +176,6 @@ class _RegisteredCardsState extends State<RegisteredCards> {
       ).showSnackBar(const SnackBar(content: Text('Tarjeta eliminada')));
     } catch (e) {
       debugPrint('[CARD DEBUG UI] Error al eliminar: $e');
-      // TarjetaService ya mostró el popup de error; no hace falta duplicar.
     }
   }
 
@@ -212,6 +207,8 @@ class _RegisteredCardsState extends State<RegisteredCards> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -221,22 +218,23 @@ class _RegisteredCardsState extends State<RegisteredCards> {
           future: _futureTarjetas,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20),
-                child: Center(child: CircularProgressIndicator(color: green)),
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: CircularProgressIndicator(color: colors.primary),
+                ),
               );
             }
 
             if (snapshot.hasError) {
-              // El popup con el detalle ya lo mostró TarjetaService.
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Row(
                   children: [
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'No se pudieron cargar tus tarjetas.',
-                        style: TextStyle(color: AppColors.error, fontSize: 13),
+                        style: TextStyle(color: colors.error, fontSize: 13),
                       ),
                     ),
                     TextButton(
@@ -251,11 +249,14 @@ class _RegisteredCardsState extends State<RegisteredCards> {
             final tarjetas = snapshot.data ?? [];
 
             if (tarjetas.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
                   'Aún no tienes tarjetas registradas',
-                  style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colors.onSurface.withOpacity(0.7),
+                  ),
                 ),
               );
             }
@@ -289,7 +290,6 @@ class _RegisteredCardsState extends State<RegisteredCards> {
                         builder: (context, child) {
                           double scale = 1.0;
                           double opacity = 1.0;
-                          // hasClients evita error en el primer frame
                           if (_pageController.hasClients &&
                               _pageController.position.haveDimensions) {
                             final page =
@@ -378,26 +378,27 @@ class DottedBorderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const green = AppColors.primary;
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.primary;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: CustomPaint(
-        painter: _DashedBorderPainter(color: green, radius: 14),
+        painter: _DashedBorderPainter(color: color, radius: 14),
         child: Container(
           width: double.infinity,
           padding: const EdgeInsets.symmetric(vertical: 14),
           alignment: Alignment.center,
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add, color: green, size: 18),
-              SizedBox(width: 6),
+              Icon(Icons.add, color: color, size: 18),
+              const SizedBox(width: 6),
               Text(
                 "Registrar nueva tarjeta",
                 style: TextStyle(
-                  color: green,
+                  color: color,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),

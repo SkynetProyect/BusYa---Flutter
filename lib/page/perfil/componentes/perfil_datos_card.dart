@@ -8,22 +8,27 @@ class PerfilDatosCard extends StatelessWidget {
   const PerfilDatosCard({super.key, required this.usuario});
 
   Widget _dato({
+    required BuildContext context,
+
     required IconData icon,
     required String titulo,
     required String valor,
   }) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 13),
       child: Row(
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: AppColors.surfaceLavender,
-              borderRadius: BorderRadius.circular(12),
+              color: colors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 22),
+            child: Icon(icon, color: colors.primary, size: 21),
           ),
 
           const SizedBox(width: 14),
@@ -34,18 +39,18 @@ class PerfilDatosCard extends StatelessWidget {
               children: [
                 Text(
                   titulo,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textMedium,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    fontSize: 13,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   valor,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textDark,
+                    color: colors.onSurface,
                   ),
                 ),
               ],
@@ -58,48 +63,45 @@ class PerfilDatosCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surfaceWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.65)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 16),
+          Padding(
+            padding: const EdgeInsets.only(top: 12, bottom: 5),
             child: Text(
               'Información personal',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: colors.primary,
               ),
             ),
           ),
-
-          const SizedBox(height: 4),
-
           _dato(
+            context: context,
             icon: Icons.eco_outlined,
             titulo: 'Puntos Eco',
             valor: '${usuario.puntosEco ?? 0} pts',
           ),
-
-          const Divider(height: 1, color: AppColors.border),
-
+          Divider(height: 1, color: theme.dividerColor),
           _dato(
+            context: context,
             icon: Icons.badge_outlined,
             titulo: 'Documento',
             valor: usuario.numeroDocumento,
           ),
-
-          const Divider(height: 1, color: AppColors.border),
-
+          Divider(height: 1, color: theme.dividerColor),
           _dato(
+            context: context,
             icon: Icons.phone_outlined,
             titulo: 'Celular',
             valor: usuario.celular ?? 'No registrado',

@@ -28,6 +28,7 @@ class BusInfoSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accesible = _tieneAccesoSillaRuedas;
+    final colors = Theme.of(context).colorScheme;
 
     return SafeArea(
       top: false,
@@ -85,7 +86,7 @@ class BusInfoSheet extends StatelessWidget {
                   child: Text(
                     'Silla de ruedas',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textTertiary,
+                      color: colors.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -93,7 +94,7 @@ class BusInfoSheet extends StatelessWidget {
                 Icon(
                   accesible ? Icons.accessible : Icons.not_accessible,
                   size: 18,
-                  color: accesible ? AppColors.success : AppColors.error,
+                  color: accesible ? colors.primary : colors.error,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -128,10 +129,13 @@ class BusInfoSheet extends StatelessWidget {
   }
 
   Widget _infoRow(BuildContext context, String label, String value) {
-    final styleLabel = Theme.of(
-      context,
-    ).textTheme.bodySmall?.copyWith(color: AppColors.textTertiary);
-    final styleValue = Theme.of(context).textTheme.bodyMedium;
+    final theme = Theme.of(context);
+    final styleLabel = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final styleValue = theme.textTheme.bodyMedium?.copyWith(
+      color: theme.colorScheme.onSurface,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(

@@ -42,6 +42,24 @@ class OccupancyFormatter {
     }
   }
 
+  /// Color asociado al nivel de ocupación usando la paleta activa del tema.
+  static Color themedColor(String? nivel, ColorScheme colors) {
+    final ratio = parseRatio(nivel);
+    if (ratio != null) {
+      if (ratio > 0.8) return colors.error;
+      if (ratio > 0.6) return colors.secondary;
+      return colors.primary;
+    }
+    switch (nivel?.toUpperCase()) {
+      case 'ROJO':
+        return colors.error;
+      case 'NARANJA':
+        return colors.secondary;
+      default:
+        return colors.primary;
+    }
+  }
+
   /// Extrae un ratio [0..1] de cadenas como "50%", "0.5" o "75 %".
   /// Devuelve null si no es interpretable.
   static double? parseRatio(String? raw) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/service/PasajeEmergenciaState.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/core/format.dart';
 
 class EmergencyDebtBanner extends StatelessWidget {
@@ -9,6 +8,7 @@ class EmergencyDebtBanner extends StatelessWidget {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: PasajeEmergenciaState.instance,
     builder: (_, __) {
+      final colors = Theme.of(context).colorScheme;
       final monto = PasajeEmergenciaState.instance.monto;
       return AnimatedSize(
         duration: const Duration(milliseconds: 250),
@@ -21,22 +21,22 @@ class EmergencyDebtBanner extends StatelessWidget {
                 margin: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceMint,
+                  color: Theme.of(context).cardTheme.color ?? colors.surface,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.info_outline,
-                      color: AppColors.primary,
+                      color: colors.primary,
                       size: 20,
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'Debes tu pasaje de emergencia (${cop(monto)}). Se cobrará junto con tu próximo pasaje.',
-                        style: const TextStyle(
-                          color: AppColors.text,
+                        style: TextStyle(
+                          color: colors.onSurface,
                           fontSize: 14,
                         ),
                       ),

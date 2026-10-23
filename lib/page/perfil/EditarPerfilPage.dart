@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Usuario.dart';
 import 'package:flutter_application_1/service/rest/usuario/UsuarioService.dart';
 import 'package:flutter_application_1/core/utils/perfil_validators.dart';
@@ -110,7 +109,7 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -118,21 +117,23 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
 
   @override
   Widget build(BuildContext context) {
-    const darkPurple = AppColors.primary;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final textColor = theme.colorScheme.onSurface;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
 
       appBar: AppBar(
-        backgroundColor: AppColors.surfaceTransparent,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: darkPurple),
+          icon: Icon(Icons.arrow_back_ios, color: theme.colorScheme.primary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Editar Perfil',
-          style: TextStyle(color: darkPurple, fontWeight: FontWeight.bold),
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
       ),
 
@@ -142,28 +143,31 @@ class _EditarPerfilPageState extends State<EditarPerfilPage> {
           child: Container(
             padding: const EdgeInsets.all(20.0),
             decoration: BoxDecoration(
-              color: AppColors.surfaceWhite,
+              color: theme.cardTheme.color ?? theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: Theme.of(context).dividerColor),
             ),
 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Información Personal',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: darkPurple,
+                    color: colors.primary,
                   ),
                 ),
 
                 const SizedBox(height: 8),
 
-                const Text(
+                Text(
                   'Actualiza los datos que deseas modificar de tu perfil.',
-                  style: TextStyle(color: AppColors.textMedium, fontSize: 14),
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontSize: 14,
+                  ),
                 ),
 
                 const SizedBox(height: 20),

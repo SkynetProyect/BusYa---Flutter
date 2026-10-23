@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:flutter_application_1/core/app_colors.dart';
-
 class CustomTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -27,6 +25,7 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return TextField(
       controller: controller,
       obscureText: obscureText,
@@ -36,13 +35,10 @@ class CustomTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         suffixIcon: suffixIcon,
-        prefixIcon: Icon(icon, color: AppColors.primary),
+        prefixIcon: Icon(icon, color: colors.primary),
         filled: true,
-        fillColor: AppColors.surface,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
+        fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

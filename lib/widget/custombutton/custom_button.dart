@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -15,26 +14,46 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+
+    // Verde primario del tema
+    final greenColor = colors.primary;
+
     return SizedBox(
       width: double.infinity,
-      height: 50,
-      child: ElevatedButton(
+      height: 52,
+      child: OutlinedButton(
         onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+        style: OutlinedButton.styleFrom(
+          // Fondo oscuro (superficie del tema)
+          backgroundColor: colors.surface,
+          // Texto e íconos en verde
+          foregroundColor: greenColor,
+          // Borde verde
+          side: BorderSide(color: greenColor, width: 1.5),
+          disabledBackgroundColor: colors.surface,
+          disabledForegroundColor: colors.onSurface.withValues(alpha: 0.38),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25),
+            borderRadius: BorderRadius.circular(13),
           ),
           elevation: 0,
         ),
         child: isLoading
-            ? const CircularProgressIndicator(color: AppColors.surfaceWhite)
+            ? SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: greenColor,
+                ),
+              )
             : Text(
                 text,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.surfaceWhite,
+                  color: greenColor,
                 ),
               ),
       ),

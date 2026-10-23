@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
-import 'package:flutter_application_1/page/rutas/componentes/TopBar.dart'
-    show TopBar;
+import 'package:flutter_application_1/widget/app_top_bar.dart';
 import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart'
     show EmpresaService;
 import 'package:flutter_application_1/service/rest/ruta/RutaService.dart'
@@ -147,12 +146,21 @@ class _RutasState extends State<Rutas> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = theme.brightness == Brightness.dark
+        ? const [
+            AppColors.darkRouteGreen,
+            AppColors.darkRouteGreenLight,
+            AppColors.darkRoutePurple,
+            AppColors.darkRouteMint,
+          ]
+        : _palette;
     return Column(
       children: [
-        const TopBar(),
+        AppTopBar(title: 'Rutas', subtitle: 'Explora las rutas disponibles'),
         Expanded(
           child: Container(
-            color: AppColors.routeSearchSurface,
+            color: theme.scaffoldBackgroundColor,
             child: Column(
               children: [
                 _buildSearchBar(),
@@ -164,13 +172,13 @@ class _RutasState extends State<Rutas> {
                       : RefreshIndicator(
                           onRefresh: _cargarDatos,
                           child: ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
                             itemCount: _rutasFiltradas.length,
                             separatorBuilder: (_, _) =>
                                 const SizedBox(height: 12),
                             itemBuilder: (context, index) {
                               final ruta = _rutasFiltradas[index];
-                              final color = _palette[index % _palette.length];
+                              final color = palette[index % palette.length];
                               final nombreEmpresa = ruta.idEmpresa != null
                                   ? _empresasPorId[ruta.idEmpresa]
                                   : null;
@@ -200,15 +208,16 @@ class _RutasState extends State<Rutas> {
   }
 
   Widget _buildSearchBar() {
+    final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceWhite,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: AppColors.textBlack.withValues(alpha: 0.05),
+              color: theme.shadowColor.withValues(alpha: 0.05),
               blurRadius: 6,
               offset: const Offset(0, 2),
             ),
@@ -216,9 +225,9 @@ class _RutasState extends State<Rutas> {
         ),
         child: TextField(
           controller: _searchController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             hintText: 'Buscar ruta, barrio o empresa',
-            prefixIcon: Icon(Icons.search, color: AppColors.textMuted),
+            prefixIcon: Icon(Icons.search, color: theme.hintColor),
             border: InputBorder.none,
             contentPadding: EdgeInsets.symmetric(vertical: 14),
           ),
@@ -249,8 +258,9 @@ class _RutaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Material(
-      color: AppColors.surfaceWhite,
+      color: theme.cardTheme.color ?? theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -261,7 +271,7 @@ class _RutaCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: AppColors.textBlack.withValues(alpha: 0.05),
+                color: theme.shadowColor.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: const Offset(0, 3),
               ),
@@ -274,8 +284,10 @@ class _RutaCard extends StatelessWidget {
                 backgroundColor: color,
                 child: Text(
                   codigo,
-                  style: const TextStyle(
-                    color: AppColors.surfaceWhite,
+                  style: TextStyle(
+                    color: color.computeLuminance() > 0.45
+                        ? AppColors.text
+                        : AppColors.textOnPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -296,8 +308,10 @@ class _RutaCard extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       _subtitulo(),
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
+                      style: TextStyle(
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.68,
+                        ),
                         fontSize: 13,
                       ),
                     ),

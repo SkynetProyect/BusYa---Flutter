@@ -9,6 +9,9 @@ class TransaccionNfc {
   final double? latitud;
   final double? longitud;
   final bool esEmergencia;
+  final bool emergenciaPagada;
+  final DateTime? fechaPagoEmergencia;
+  final int? idTarjetaPagoEmergencia;
   final String? nombreRuta;
   final String? marcaTarjeta;
   final String? ultimosCuatro;
@@ -24,16 +27,22 @@ class TransaccionNfc {
     this.latitud,
     this.longitud,
     this.esEmergencia = false,
+    this.emergenciaPagada = false,
+    this.fechaPagoEmergencia,
+    this.idTarjetaPagoEmergencia,
     this.nombreRuta,
     this.marcaTarjeta,
     this.ultimosCuatro,
   });
 
-  /// Ej: "Visa •••• 4242", o null si no hay tarjeta (pasaje de emergencia, tarjeta eliminada)
+  /// Ej: "Visa •••• 4242", o null si no hay tarjeta (tarjeta eliminada)
   String? get tarjetaLabel {
     if (marcaTarjeta == null || ultimosCuatro == null) return null;
     return '$marcaTarjeta •••• $ultimosCuatro';
   }
+
+  static DateTime? _fecha(dynamic v) =>
+      v == null ? null : DateTime.parse(v as String).toLocal();
 
   factory TransaccionNfc.fromRow(Map<String, dynamic> row) {
     final rutaNombre = row['buses']?['rutas']?['nombre'] as String?;
@@ -45,9 +54,7 @@ class TransaccionNfc {
       idBus: row['id_bus'] as int?,
       idTarjeta: row['id_tarjeta'] as int?,
       monto: (row['monto'] as num).toDouble(),
-      fechaTransaccion: row['fecha_transaccion'] != null
-          ? DateTime.parse(row['fecha_transaccion'] as String)
-          : null,
+      fechaTransaccion: _fecha(row['fecha_transaccion']),
       sincronizadoOffline: row['sincronizado_offline'] as bool?,
       latitud: row['latitud'] != null
           ? (row['latitud'] as num).toDouble()
@@ -56,6 +63,9 @@ class TransaccionNfc {
           ? (row['longitud'] as num).toDouble()
           : null,
       esEmergencia: row['es_emergencia'] as bool? ?? false,
+      emergenciaPagada: row['emergencia_pagada'] as bool? ?? false,
+      fechaPagoEmergencia: _fecha(row['fecha_pago_emergencia']),
+      idTarjetaPagoEmergencia: row['id_tarjeta_pago_emergencia'] as int?,
       nombreRuta: rutaNombre,
       marcaTarjeta: tarjeta?['marca'] as String?,
       ultimosCuatro: tarjeta?['ultimos_cuatro_digitos'] as String?,
