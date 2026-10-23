@@ -4,7 +4,6 @@ import 'package:flutter_application_1/service/notification_service.dart'
     show NotificationService;
 import 'package:intl/date_symbol_data_local.dart';
 import 'app_keys.dart';
-import 'core/app_colors.dart';
 import 'core/route_observer.dart';
 import 'core/supabase_client.dart';
 import 'core/auth_listener.dart';
@@ -13,6 +12,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_application_1/service/dispositivo_fcm_service.dart';
 import 'firebase_options.dart';
+import 'core/app_theme.dart';
+import 'core/theme_controller.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -21,6 +22,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await themeController.loadTheme();
 
   // Inicializar Firebase una sola vez.
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -58,19 +61,21 @@ class Main extends StatelessWidget {
   Widget build(BuildContext context) {
     final session = supabase.auth.currentSession;
 
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      navigatorObservers: [routeObserver], // <- nuevo: NFC sabe cuándo lo tapan
-      title: 'BusYa',
-      home: session == null ? const LoginPage() : const Application(),
-      theme: ThemeData(
-        brightness: Brightness.light,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: AppColors.primary,
-          brightness: Brightness.light,
-        ),
-        scaffoldBackgroundColor: AppColors.surface,
-      ),
+    return AnimatedBuilder(
+      animation: themeController,
+      builder: (context, child) {
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          navigatorObservers: [
+            routeObserver,
+          ], // <- nuevo: NFC sabe cuándo lo tapan
+          title: 'BusYa',
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          themeMode: themeController.themeMode,
+          home: session == null ? const LoginPage() : const Application(),
+        );
+      },
     );
   }
 }
