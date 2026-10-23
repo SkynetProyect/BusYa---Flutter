@@ -137,7 +137,10 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
                         }
 
                         // Una fila de emergencia pagada pasa a ser dos entradas.
-                        final entradas = expandirHistorial(lista);
+                        final entradas = expandirHistorialTarjeta(
+                          lista,
+                          widget.tarjeta.id ?? -1,
+                        );
 
                         return Container(
                           decoration: BoxDecoration(

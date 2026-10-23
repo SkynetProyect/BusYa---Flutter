@@ -15,6 +15,8 @@ class TransaccionNfc {
   final String? nombreRuta;
   final String? marcaTarjeta;
   final String? ultimosCuatro;
+  final String? marcaTarjetaPago;
+  final String? ultimosCuatroPago;
 
   TransaccionNfc({
     this.id,
@@ -33,12 +35,20 @@ class TransaccionNfc {
     this.nombreRuta,
     this.marcaTarjeta,
     this.ultimosCuatro,
+    this.marcaTarjetaPago,
+    this.ultimosCuatroPago,
   });
 
-  /// Ej: "Visa •••• 4242", o null si no hay tarjeta (tarjeta eliminada)
+  /// Tarjeta del cobro. Ej: "Visa •••• 4242"
   String? get tarjetaLabel {
     if (marcaTarjeta == null || ultimosCuatro == null) return null;
     return '$marcaTarjeta •••• $ultimosCuatro';
+  }
+
+  /// Tarjeta con la que se saldó el pasaje de emergencia
+  String? get tarjetaPagoLabel {
+    if (marcaTarjetaPago == null || ultimosCuatroPago == null) return null;
+    return '$marcaTarjetaPago •••• $ultimosCuatroPago';
   }
 
   static DateTime? _fecha(dynamic v) =>
@@ -47,6 +57,7 @@ class TransaccionNfc {
   factory TransaccionNfc.fromRow(Map<String, dynamic> row) {
     final rutaNombre = row['buses']?['rutas']?['nombre'] as String?;
     final tarjeta = row['tarjetas'] as Map<String, dynamic>?;
+    final tarjetaPago = row['tarjeta_pago'] as Map<String, dynamic>?;
 
     return TransaccionNfc(
       id: row['id'] as String?,
@@ -69,6 +80,8 @@ class TransaccionNfc {
       nombreRuta: rutaNombre,
       marcaTarjeta: tarjeta?['marca'] as String?,
       ultimosCuatro: tarjeta?['ultimos_cuatro_digitos'] as String?,
+      marcaTarjetaPago: tarjetaPago?['marca'] as String?,
+      ultimosCuatroPago: tarjetaPago?['ultimos_cuatro_digitos'] as String?,
     );
   }
 
