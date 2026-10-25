@@ -1,0 +1,248 @@
+:root {
+  --fondo: #f4f6fb;
+  --tarjeta: #ffffff;
+  --texto: #1c2434;
+  --texto-suave: #6b7488;
+  --primario: #3b5bdb;
+  --primario-texto: #ffffff;
+  --borde: #e2e6f0;
+  --error: #d64545;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #12151d;
+    --tarjeta: #1b2030;
+    --texto: #e8ebf4;
+    --texto-suave: #9aa3b8;
+    --primario: #7b93ff;
+    --primario-texto: #12151d;
+    --borde: #2b3247;
+    --error: #ff7b7b;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+h1, h2 {
+  margin: 0 0 4px;
+}
+
+h2 {
+  font-size: 1.1rem;
+}
+
+p {
+  margin: 0;
+}
+
+.texto-suave {
+  color: var(--texto-suave);
+  font-size: 0.9rem;
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.9rem;
+}
+
+.mensaje-centro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 16px;
+  color: var(--texto-suave);
+}
+
+/* ---------- Tarjetas y botones ---------- */
+.tarjeta {
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.boton {
+  border: 1px solid var(--primario);
+  background: var(--primario);
+  color: var(--primario-texto);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.boton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.boton-secundario {
+  background: transparent;
+  color: var(--primario);
+}
+
+input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  background: var(--fondo);
+  color: var(--texto);
+  font-size: 0.95rem;
+}
+
+/* ---------- Login ---------- */
+.login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.login-formulario {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.login-formulario label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+/* ---------- Panel ---------- */
+.pagina {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.encabezado {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.grid-tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.grid-tarjetas .tarjeta {
+  margin-bottom: 0;
+}
+
+.grid-tarjetas + .tarjeta {
+  margin-top: 16px;
+}
+
+.numero {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.top-usuarios {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.top-usuarios li {
+  display: grid;
+  grid-template-columns: minmax(80px, 240px) 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.barra-fondo {
+  background: var(--fondo);
+  border-radius: 99px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.barra {
+  background: var(--primario);
+  height: 100%;
+  border-radius: 99px;
+}
+
+.id-usuario {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Lista ---------- */
+.lista-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.lista-cabecera input {
+  max-width: 280px;
+}
+
+.tabla-contenedor {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--borde);
+  vertical-align: top;
+}
+
+th {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+}
+
+.texto-reporte {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 240px;
+}

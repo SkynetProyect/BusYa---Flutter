@@ -185,7 +185,11 @@ class _PerfilState extends State<Perfil> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          onPressed: () => showReportarErrorDialog(context),
+                          // CORRECCIÓN: el diálogo ahora exige el id del usuario.
+                          onPressed: () => showReportarErrorDialog(
+                            context,
+                            idUsuario: usuario.id,
+                          ),
                           icon: const Icon(Icons.bug_report_outlined, size: 19),
                           label: const Text('Reportar error'),
                           style: OutlinedButton.styleFrom(

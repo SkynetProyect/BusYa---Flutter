@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/app_colors.dart';
+import 'package:flutter_application_1/core/supabase_client.dart';
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
+import 'package:flutter_application_1/model/RutaFavorita.dart'
+    show RutaFavorita;
 import 'package:flutter_application_1/widget/app_top_bar.dart';
 import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart'
     show EmpresaService;
@@ -9,8 +12,11 @@ import 'package:flutter_application_1/service/rest/ruta/RutaService.dart'
     show RutaService;
 import 'package:flutter_application_1/service/rest/ruta_favorita/RutaFavoritaService.dart'
     show RutaFavoritaService;
-import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Pantalla de rutas dividida en dos listas:
+/// - Arriba: las rutas favoritas del usuario (tabla rutas_favoritas).
+/// - Abajo: todas las rutas, cada una con una estrella para marcarla
+///   o quitarla de favoritas.
 class Rutas extends StatefulWidget {
   const Rutas({super.key});
 
@@ -19,30 +25,45 @@ class Rutas extends StatefulWidget {
 }
 
 class _RutasState extends State<Rutas> {
-  final RutaService _rutaService = RutaService();
-  final EmpresaService _empresaService = EmpresaService();
-  final RutaFavoritaService _rutaFavoritaService = RutaFavoritaService();
-
-  List<Ruta> _rutas = [];
-  List<Ruta> _rutasFiltradas = [];
-  Map<int, String> _empresasPorId = {};
-  Map<int, int> _viajesPorRuta = {}; // {idRuta: veces tomada}
-
-  bool _loading = true;
-  final TextEditingController _searchController = TextEditingController();
-
-  final List<Color> _palette = const [
+  static const List<Color> _paletaClara = [
     AppColors.routeGreen, // verde oscuro
     AppColors.routeGreenLight, // verde claro
     AppColors.routePurple, // morado
     AppColors.routeMint, // verde menta
   ];
 
+  static const List<Color> _paletaOscura = [
+    AppColors.darkRouteGreen,
+    AppColors.darkRouteGreenLight,
+    AppColors.darkRoutePurple,
+    AppColors.darkRouteMint,
+  ];
+
+  final RutaService _rutaService = RutaService();
+  final EmpresaService _empresaService = EmpresaService();
+  final RutaFavoritaService _rutaFavoritaService = RutaFavoritaService();
+
+  final TextEditingController _searchController = TextEditingController();
+
+  List<Ruta> _rutas = [];
+  Map<int, String> _empresasPorId = {};
+
+  // {idRuta: filas de rutas_favoritas de esa ruta}
+  // Es una lista por si en la tabla hubiera filas repetidas de la misma ruta.
+  Map<int, List<RutaFavorita>> _favoritasPorRuta = {};
+
+  // Rutas con una operación en curso (evita doble toque en la estrella).
+  final Set<int> _rutasEnProceso = {};
+
+  bool _loading = true;
+
+  String? get _userId => supabase.auth.currentUser?.id;
+
   @override
   void initState() {
     super.initState();
     _cargarDatos();
-    _searchController.addListener(_filtrar);
+    _searchController.addListener(() => setState(() {}));
   }
 
   @override
@@ -51,53 +72,30 @@ class _RutasState extends State<Rutas> {
     super.dispose();
   }
 
-  Future<Map<int, int>> _cargarViajes() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null) return {};
+  // ---------- CARGA DE DATOS ----------
 
-    try {
-      final favoritas = await _rutaFavoritaService.getByUsuarioId(userId);
-      final conteo = <int, int>{};
-      for (final f in favoritas) {
-        final id = f.idRuta;
-        if (id != null) conteo[id] = (conteo[id] ?? 0) + 1;
-      }
-      return conteo;
-    } catch (_) {
-      return {}; // si falla, la lista de rutas se muestra igual
-    }
+  Future<void> _cargarDatos({bool mostrarSpinner = true}) async {
+    if (mostrarSpinner) setState(() => _loading = true);
+
+    // Se cargan en paralelo. Cada método maneja sus propios errores.
+    await Future.wait([_cargarRutasYEmpresas(), _recargarFavoritas()]);
+
+    if (mounted) setState(() => _loading = false);
   }
 
-  List<Ruta> _ordenarPorViajes(List<Ruta> rutas) {
-    final copia = [...rutas];
-    copia.sort((a, b) {
-      final va = _viajesPorRuta[a.id] ?? 0;
-      final vb = _viajesPorRuta[b.id] ?? 0;
-      if (vb != va) return vb.compareTo(va);
-      return a.nombre.compareTo(b.nombre);
-    });
-    return copia;
-  }
-
-  Future<void> _cargarDatos() async {
-    setState(() => _loading = true);
+  Future<void> _cargarRutasYEmpresas() async {
     try {
-      // Se cargan en paralelo
-      final results = await Future.wait([
+      final resultados = await Future.wait([
         _rutaService.getAll(),
         _empresaService.getAll(),
-        _cargarViajes(),
       ]);
 
-      final rutas = results[0] as List<Ruta>;
-      final empresas = results[1] as List<Empresa>;
-      final viajes = results[2] as Map<int, int>;
+      final rutas = resultados[0] as List<Ruta>;
+      final empresas = resultados[1] as List<Empresa>;
 
       if (!mounted) return;
       setState(() {
-        _viajesPorRuta = viajes;
-        _rutas = _ordenarPorViajes(rutas);
-        _rutasFiltradas = _rutas;
+        _rutas = [...rutas]..sort((a, b) => a.nombre.compareTo(b.nombre));
         _empresasPorId = {
           for (final e in empresas)
             if (e.id != null) e.id!: e.nombre,
@@ -105,26 +103,109 @@ class _RutasState extends State<Rutas> {
       });
     } catch (_) {
       // Los servicios ya muestran el popup de error
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _filtrar() {
-    final query = _searchController.text.toLowerCase().trim();
-    setState(() {
-      if (query.isEmpty) {
-        _rutasFiltradas = _rutas; // ya viene ordenada
-      } else {
-        _rutasFiltradas = _rutas.where((r) {
-          final nombreEmpresa = (_empresasPorId[r.idEmpresa] ?? '')
-              .toLowerCase();
-          return r.nombre.toLowerCase().contains(query) ||
-              nombreEmpresa.contains(query);
-        }).toList(); // filtrar conserva el orden de _rutas
+  /// Vuelve a pedir las favoritas a la tabla rutas_favoritas.
+  /// Se usa al abrir la pantalla y después de agregar o quitar una favorita.
+  Future<void> _recargarFavoritas() async {
+    final userId = _userId;
+    if (userId == null) return;
+
+    try {
+      final favoritas = await _rutaFavoritaService.getByUsuarioId(userId);
+
+      if (!mounted) return;
+      setState(() => _favoritasPorRuta = _agruparPorRuta(favoritas));
+    } catch (_) {
+      // El servicio ya muestra el popup; se conserva la lista actual.
+    }
+  }
+
+  Map<int, List<RutaFavorita>> _agruparPorRuta(List<RutaFavorita> favoritas) {
+    final mapa = <int, List<RutaFavorita>>{};
+    for (final favorita in favoritas) {
+      final idRuta = favorita.idRuta;
+      if (idRuta == null) continue;
+      mapa.putIfAbsent(idRuta, () => []).add(favorita);
+    }
+    return mapa;
+  }
+
+  // ---------- FAVORITAS: AGREGAR Y QUITAR ----------
+
+  bool _esFavorita(Ruta ruta) {
+    final id = ruta.id;
+    return id != null && _favoritasPorRuta.containsKey(id);
+  }
+
+  Future<void> _alternarFavorita(Ruta ruta) {
+    return _esFavorita(ruta) ? _quitarFavorita(ruta) : _agregarFavorita(ruta);
+  }
+
+  Future<void> _agregarFavorita(Ruta ruta) async {
+    final idRuta = ruta.id;
+    final userId = _userId;
+    if (idRuta == null || userId == null) return;
+
+    await _ejecutarSobreRuta(idRuta, () async {
+      await _rutaFavoritaService.create(
+        RutaFavorita(idUsuario: userId, idRuta: idRuta),
+      );
+    });
+  }
+
+  Future<void> _quitarFavorita(Ruta ruta) async {
+    final idRuta = ruta.id;
+    if (idRuta == null) return;
+
+    final filas = _favoritasPorRuta[idRuta] ?? [];
+
+    await _ejecutarSobreRuta(idRuta, () async {
+      for (final fila in filas) {
+        final id = fila.id;
+        if (id != null) await _rutaFavoritaService.delete(id);
       }
     });
   }
+
+  /// Ejecuta [accion] y luego recarga las favoritas desde el servicio.
+  /// Mientras tanto la estrella de esa ruta muestra un indicador de carga.
+  Future<void> _ejecutarSobreRuta(
+    int idRuta,
+    Future<void> Function() accion,
+  ) async {
+    if (_rutasEnProceso.contains(idRuta)) return;
+
+    setState(() => _rutasEnProceso.add(idRuta));
+    try {
+      await accion();
+      await _recargarFavoritas();
+    } catch (_) {
+      // El servicio ya muestra el popup de error
+    } finally {
+      if (mounted) setState(() => _rutasEnProceso.remove(idRuta));
+    }
+  }
+
+  // ---------- LISTAS DERIVADAS DEL ESTADO ----------
+
+  List<Ruta> get _rutasFavoritas {
+    return _rutas.where(_esFavorita).toList();
+  }
+
+  List<Ruta> get _rutasVisibles {
+    final query = _searchController.text.toLowerCase().trim();
+    if (query.isEmpty) return _rutas;
+
+    return _rutas.where((r) {
+      final nombreEmpresa = (_empresasPorId[r.idEmpresa] ?? '').toLowerCase();
+      return r.nombre.toLowerCase().contains(query) ||
+          nombreEmpresa.contains(query);
+    }).toList();
+  }
+
+  // ---------- FORMATO ----------
 
   String _codigoRuta(Ruta ruta) {
     return (ruta.id ?? 0).toString().padLeft(3, '0');
@@ -144,62 +225,30 @@ class _RutasState extends State<Rutas> {
     return '\$$buffer';
   }
 
+  // El color depende del id de la ruta, así no cambia al filtrar o reordenar.
+  Color _colorDeRuta(Ruta ruta) {
+    final oscuro = Theme.of(context).brightness == Brightness.dark;
+    final paleta = oscuro ? _paletaOscura : _paletaClara;
+    return paleta[(ruta.id ?? 0) % paleta.length];
+  }
+
+  // ---------- INTERFAZ ----------
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final palette = theme.brightness == Brightness.dark
-        ? const [
-            AppColors.darkRouteGreen,
-            AppColors.darkRouteGreenLight,
-            AppColors.darkRoutePurple,
-            AppColors.darkRouteMint,
-          ]
-        : _palette;
+
     return Column(
       children: [
-        AppTopBar(title: 'Rutas', subtitle: 'Explora las rutas disponibles'),
+        const AppTopBar(
+          title: 'Rutas',
+          subtitle: 'Explora las rutas disponibles',
+        ),
         Expanded(
           child: Container(
             color: theme.scaffoldBackgroundColor,
             child: Column(
-              children: [
-                _buildSearchBar(),
-                Expanded(
-                  child: _loading
-                      ? const Center(child: CircularProgressIndicator())
-                      : _rutasFiltradas.isEmpty
-                      ? const Center(child: Text('No se encontraron rutas'))
-                      : RefreshIndicator(
-                          onRefresh: _cargarDatos,
-                          child: ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
-                            itemCount: _rutasFiltradas.length,
-                            separatorBuilder: (_, _) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final ruta = _rutasFiltradas[index];
-                              final color = palette[index % palette.length];
-                              final nombreEmpresa = ruta.idEmpresa != null
-                                  ? _empresasPorId[ruta.idEmpresa]
-                                  : null;
-                              return _RutaCard(
-                                ruta: ruta,
-                                color: color,
-                                codigo: _codigoRuta(ruta),
-                                nombreEmpresa: nombreEmpresa,
-                                precioTexto: _precioFormateado(
-                                  ruta.precioPasaje,
-                                ),
-                                viajes: _viajesPorRuta[ruta.id] ?? 0,
-                                onTap: () {
-                                  // TODO: navegar a detalle / mapa de la ruta
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                ),
-              ],
+              children: [_buildSeccionFavoritas(), _buildSeccionTodas()],
             ),
           ),
         ),
@@ -207,10 +256,177 @@ class _RutasState extends State<Rutas> {
     );
   }
 
+  // ----- Sección de arriba: favoritas -----
+
+  Widget _buildSeccionFavoritas() {
+    final favoritas = _rutasFavoritas;
+    final encabezado = _buildEncabezado(
+      titulo: 'Mis favoritas',
+      icono: Icons.star_rounded,
+      cantidad: _loading ? null : favoritas.length,
+    );
+
+    // Sin favoritas: un mensaje corto para no quitarle espacio a la otra lista.
+    if (!_loading && favoritas.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          encabezado,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(
+              'Aún no tienes rutas favoritas. '
+              'Toca la estrella de una ruta para agregarla.',
+              style: TextStyle(color: Theme.of(context).hintColor),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Expanded(
+      flex: 2,
+      child: Column(
+        children: [
+          encabezado,
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _buildListaRutas(
+                    favoritas,
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----- Sección de abajo: todas las rutas -----
+
+  Widget _buildSeccionTodas() {
+    final visibles = _rutasVisibles;
+
+    return Expanded(
+      flex: 3,
+      child: Column(
+        children: [
+          _buildEncabezado(
+            titulo: 'Todas las rutas',
+            icono: Icons.directions_bus_rounded,
+            cantidad: _loading ? null : _rutas.length,
+          ),
+          _buildSearchBar(),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : visibles.isEmpty
+                ? const Center(child: Text('No se encontraron rutas'))
+                : RefreshIndicator(
+                    onRefresh: () => _cargarDatos(mostrarSpinner: false),
+                    child: _buildListaRutas(
+                      visibles,
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 110),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----- Piezas compartidas -----
+
+  Widget _buildEncabezado({
+    required String titulo,
+    required IconData icono,
+    int? cantidad,
+  }) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Row(
+        children: [
+          Icon(icono, size: 20, color: theme.colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            titulo,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const Spacer(),
+          if (cantidad != null)
+            Text(
+              '$cantidad',
+              style: TextStyle(color: theme.hintColor, fontSize: 13),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListaRutas(List<Ruta> rutas, {required EdgeInsets padding}) {
+    return ListView.separated(
+      padding: padding,
+      itemCount: rutas.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, index) => _buildTarjeta(rutas[index]),
+    );
+  }
+
+  Widget _buildTarjeta(Ruta ruta) {
+    final idEmpresa = ruta.idEmpresa;
+
+    return _RutaCard(
+      ruta: ruta,
+      color: _colorDeRuta(ruta),
+      codigo: _codigoRuta(ruta),
+      nombreEmpresa: idEmpresa != null ? _empresasPorId[idEmpresa] : null,
+      precioTexto: _precioFormateado(ruta.precioPasaje),
+      trailing: _buildBotonFavorita(ruta),
+      onTap: () {
+        // TODO: navegar a detalle / mapa de la ruta
+      },
+    );
+  }
+
+  /// Estrella vacía = agregar a favoritas. Estrella llena = quitar de favoritas.
+  /// Se usa igual en las dos listas.
+  Widget _buildBotonFavorita(Ruta ruta) {
+    final theme = Theme.of(context);
+    final id = ruta.id;
+    final esFavorita = _esFavorita(ruta);
+
+    if (id != null && _rutasEnProceso.contains(id)) {
+      return const SizedBox(
+        width: 48,
+        height: 48,
+        child: Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
+
+    return IconButton(
+      tooltip: esFavorita ? 'Quitar de favoritas' : 'Agregar a favoritas',
+      icon: Icon(
+        esFavorita ? Icons.star_rounded : Icons.star_border_rounded,
+        color: esFavorita ? Colors.amber : theme.hintColor,
+      ),
+      onPressed: _userId == null ? null : () => _alternarFavorita(ruta),
+    );
+  }
+
   Widget _buildSearchBar() {
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
@@ -229,7 +445,7 @@ class _RutasState extends State<Rutas> {
             hintText: 'Buscar ruta, barrio o empresa',
             prefixIcon: Icon(Icons.search, color: theme.hintColor),
             border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(vertical: 14),
           ),
         ),
       ),
@@ -243,8 +459,8 @@ class _RutaCard extends StatelessWidget {
   final String codigo;
   final String? nombreEmpresa;
   final String precioTexto;
+  final Widget? trailing;
   final VoidCallback onTap;
-  final int viajes;
 
   const _RutaCard({
     required this.ruta,
@@ -252,8 +468,8 @@ class _RutaCard extends StatelessWidget {
     required this.codigo,
     required this.nombreEmpresa,
     required this.precioTexto,
-    required this.viajes,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -318,6 +534,7 @@ class _RutaCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (trailing != null) trailing!,
             ],
           ),
         ),
@@ -326,10 +543,9 @@ class _RutaCard extends StatelessWidget {
   }
 
   String _subtitulo() {
-    final base = (nombreEmpresa != null && nombreEmpresa!.isNotEmpty)
-        ? '$nombreEmpresa · $precioTexto'
-        : precioTexto;
-    if (viajes == 0) return base;
-    return '$base · $viajes ${viajes == 1 ? 'viaje' : 'viajes'}';
+    if (nombreEmpresa != null && nombreEmpresa!.isNotEmpty) {
+      return '$nombreEmpresa · $precioTexto';
+    }
+    return precioTexto;
   }
 }
