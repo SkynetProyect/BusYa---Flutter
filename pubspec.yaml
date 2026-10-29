@@ -28,6 +28,9 @@ dependencies:
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
   flutter_compass: ^0.8.1
+  google_generative_ai: ^0.4.7
+  speech_to_text: ^7.5.0
+  flutter_tts: ^4.2.5
 
 dev_dependencies:
   flutter_test:

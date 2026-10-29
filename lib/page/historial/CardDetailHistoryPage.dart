@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/core/app_colors.dart';
 import 'package:flutter_application_1/page/pagos/componentes/NfcPaymentPanel.dart';
 import 'package:flutter_application_1/service/NfcPaymentController.dart';
 import 'package:flutter_application_1/service/PasajeEmergenciaState.dart';
@@ -70,17 +69,21 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     return NfcListenScope(
       controller: _nfc,
       child: Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: AppColors.surface,
+          backgroundColor: theme.appBarTheme.backgroundColor ?? colors.surface,
           elevation: 0,
-          iconTheme: const IconThemeData(color: AppColors.primary),
+          iconTheme: IconThemeData(
+            color: theme.appBarTheme.iconTheme?.color ?? colors.onSurface,
+          ),
           title: Text(
             widget.tarjeta.nombreTitular,
-            style: const TextStyle(color: AppColors.text),
+            style: TextStyle(color: colors.onSurface),
           ),
         ),
         body: Column(
@@ -88,7 +91,7 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
             const EmergencyDebtBanner(), // debajo del appbar, sin cerrar
             Expanded(
               child: RefreshIndicator(
-                color: AppColors.green,
+                color: colors.primary,
                 onRefresh: _refrescar,
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
@@ -101,10 +104,10 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
                       selected: true,
                     ),
                     const SizedBox(height: 24),
-                    const Text(
+                    Text(
                       'Transacciones',
                       style: TextStyle(
-                        color: AppColors.text,
+                        color: colors.onSurface,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -115,11 +118,11 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 32),
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 32),
                             child: Center(
                               child: CircularProgressIndicator(
-                                color: AppColors.green,
+                                color: colors.primary,
                               ),
                             ),
                           );
@@ -144,7 +147,7 @@ class _CardDetailHistoryPageState extends State<CardDetailHistoryPage> {
 
                         return Container(
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceWhite,
+                            color: colors.surface,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           clipBehavior: Clip.antiAlias,
@@ -178,13 +181,14 @@ class _Mensaje extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurface;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 32),
       child: Center(
         child: Text(
           texto,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.text),
+          style: TextStyle(color: color),
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../service/NfcPaymentController.dart';
+import '../../../service/puntos_service.dart';
 import '../../../widget/nfc/wallet_nfc_indicator.dart';
 import 'package:flutter_application_1/core/format.dart';
 import 'package:flutter_application_1/model/NfcUiState.dart';
@@ -16,10 +17,24 @@ class NfcPaymentPanel extends StatelessWidget {
     final card = c.tarjeta == null
         ? 'Selecciona una tarjeta'
         : '${c.tarjeta!.marca} •••• ${c.tarjeta!.ultimosCuatroDigitos}';
+    // Con pasaje de emergencia pendiente no se puede usar el pasaje Eco.
+    final deudaPendiente =
+        false; // TODO: getter de deuda en PasajeEmergenciaState
+    final tieneEco =
+        PuntosService().estado.value.pasajesGratis > 0 && !deudaPendiente;
     return switch (c.state) {
-      NfcUiState.idle => ('Acerca tu teléfono al bus', 'Pagarás con $card'),
+      NfcUiState.idle => (
+        'Acerca tu teléfono al bus',
+        tieneEco
+            ? 'Este viaje es gratis con tu pasaje Eco'
+            : 'Pagarás con $card',
+      ),
       NfcUiState.processing => ('Procesando pago…', card),
       NfcUiState.success => ('¡Pago exitoso!', '${cop(c.monto ?? 0)} · $card'),
+      NfcUiState.ecoPass => (
+        '¡Viaje gratis!',
+        'Pagaste con tu pasaje Eco · no se cobró nada a tu tarjeta',
+      ),
       NfcUiState.emergency => (
         'Pasaje de emergencia',
         'No tenías saldo, te lo prestamos. Se cobrará en tu próximo pago.',
@@ -38,7 +53,8 @@ class NfcPaymentPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: controller,
+    // Escucha el controlador y también el estado de puntos (pasajes Eco).
+    listenable: Listenable.merge([controller, PuntosService().estado]),
     builder: (_, __) {
       final theme = Theme.of(context);
       final colors = theme.colorScheme;
@@ -62,7 +78,9 @@ class NfcPaymentPanel extends StatelessWidget {
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 250),
               child: Column(
-                key: ValueKey('${controller.nfcActivo}-${controller.state}'),
+                key: ValueKey(
+                  '${controller.nfcActivo}-${controller.state}-${PuntosService().estado.value.pasajesGratis > 0}',
+                ),
                 children: [
                   Text(
                     titulo,

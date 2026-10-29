@@ -23,28 +23,32 @@ class _WalletNfcIndicatorState extends State<WalletNfcIndicator>
     super.dispose();
   }
 
-  (Color bg, Color fg, IconData icon) _look(ColorScheme colors) => switch (widget.state) {
-    NfcUiState.idle || NfcUiState.processing => (
-      colors.surface,
-      colors.onSurface,
-      Icons.nfc_rounded,
-    ),
-    NfcUiState.success || NfcUiState.successWithDebt => (
-      colors.primary,
-      colors.onPrimary,
-      Icons.check_rounded,
-    ),
-    NfcUiState.emergency => (
-      colors.secondary,
-      colors.onSecondary,
-      Icons.check_rounded,
-    ),
-    NfcUiState.rejected || NfcUiState.error => (
-      colors.error,
-      colors.onError,
-      Icons.close_rounded,
-    ),
-  };
+  (Color bg, Color fg, IconData icon) _look(ColorScheme colors) =>
+      switch (widget.state) {
+        NfcUiState.idle || NfcUiState.processing => (
+          colors.surface,
+          colors.onSurface,
+          Icons.nfc_rounded,
+        ),
+        NfcUiState.success || NfcUiState.successWithDebt => (
+          colors.primary,
+          colors.onPrimary,
+          Icons.check_rounded,
+        ),
+        // Viaje gratis con pasaje Eco: mismo verde de éxito, pero con regalo.
+        NfcUiState.ecoPass => (
+          colors.primary,
+          colors.onPrimary,
+          Icons.card_giftcard_rounded,
+        ),
+        NfcUiState.emergency => (
+          colors.secondary,
+          colors.onSecondary,
+          Icons.check_rounded,
+        ),
+        NfcUiState.rejected ||
+        NfcUiState.error => (colors.error, colors.onError, Icons.close_rounded),
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +57,7 @@ class _WalletNfcIndicatorState extends State<WalletNfcIndicator>
     final s = widget.state;
     final ok =
         s == NfcUiState.success ||
+        s == NfcUiState.ecoPass ||
         s == NfcUiState.emergency ||
         s == NfcUiState.successWithDebt;
     final dot = widget.size * (ok ? 0.62 : 0.5);

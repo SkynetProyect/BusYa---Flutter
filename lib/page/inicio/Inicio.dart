@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/features/voice/application/voice_controller.dart';
+import 'package:flutter_application_1/features/voice/presentation/voice_layout.dart';
 import 'package:flutter_application_1/model/Bus.dart' show Bus;
 import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
@@ -43,7 +45,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// También atiende solicitudes de otras pantallas (por ejemplo, las rutas
 /// favoritas) a través de [MapaRutaRequest].
 class Inicio extends StatefulWidget {
-  const Inicio({super.key});
+  const Inicio({super.key, this.voiceController});
+
+  final VoiceController? voiceController;
 
   @override
   State<Inicio> createState() => _InicioState();
@@ -580,7 +584,6 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       children: [
         AppTopBar(
@@ -613,18 +616,31 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
                   },
                 ),
               ),
-              Positioned(
-                right: 16,
-                bottom: MediaQuery.of(context).padding.bottom + 76,
-                child: FloatingActionButton.small(
-                  heroTag: 'btn_centrar_usuario',
-                  tooltip: 'Mi ubicación',
-                  onPressed: _centrarEnUsuario,
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  elevation: 6,
-                  child: Icon(Icons.my_location, color: colorScheme.onPrimary),
-                ),
+              AnimatedBuilder(
+                animation: widget.voiceController ?? _NoopListenable.instance,
+                builder: (context, _) {
+                  final voicePanelVisible =
+                      widget.voiceController?.isPanelVisible ?? false;
+                  final safeBottom = MediaQuery.of(context).padding.bottom;
+                  final controlBottom = voicePanelVisible
+                      ? kVoiceNavigationHeight +
+                            safeBottom +
+                            kVoicePanelReservedHeight +
+                            kControlSpacing
+                      : kVoiceNavigationHeight +
+                            safeBottom +
+                            kVoiceBottomInset +
+                            kVoiceButtonSize +
+                            kControlSpacing;
+
+                  return AnimatedPositioned(
+                    duration: const Duration(milliseconds: 260),
+                    curve: Curves.easeOutCubic,
+                    right: kVoiceHorizontalInset,
+                    bottom: controlBottom,
+                    child: _MapLocationButton(onPressed: _centrarEnUsuario),
+                  );
+                },
               ),
             ],
           ),
@@ -658,4 +674,51 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
       ],
     );
   }
+}
+
+class _MapLocationButton extends StatelessWidget {
+  const _MapLocationButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      label: 'Mi ubicación',
+      child: Tooltip(
+        message: 'Mi ubicación',
+        child: Material(
+          color: colorScheme.primaryContainer,
+          elevation: 3,
+          shadowColor: colorScheme.shadow.withValues(alpha: 0.2),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onPressed,
+            child: SizedBox.square(
+              dimension: kVoiceButtonSize,
+              child: Icon(
+                Icons.my_location,
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoopListenable implements Listenable {
+  const _NoopListenable._();
+
+  static const instance = _NoopListenable._();
+
+  @override
+  void addListener(VoidCallback listener) {}
+
+  @override
+  void removeListener(VoidCallback listener) {}
 }

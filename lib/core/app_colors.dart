@@ -192,4 +192,10 @@ abstract final class AppColors {
   static const terminalNavigationSurface = Color(0xFFE4E8E5);
 
   static const darkTerminalNavigationSurface = Color(0xFF28332F);
+
+  // =========================================================
+  // TOPBAR / APPBAR
+  // =========================================================
+  static const topBarBackground = Color(0xFFB6D3B2);
+  static const darkTopBarBackground = Color(0xFF1D252D);
 }

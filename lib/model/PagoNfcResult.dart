@@ -1,5 +1,6 @@
 enum PagoNfcStatus {
   success,
+  ecoPassSuccess,
   emergencySuccess,
   successWithEmergency,
   rejected,
@@ -27,6 +28,7 @@ class PagoNfcResult {
     final rawStatus = (json['status'] as String? ?? '').toUpperCase();
     final status = switch (rawStatus) {
       'SUCCESS' => PagoNfcStatus.success,
+      'ECO_PASS_SUCCESS' => PagoNfcStatus.ecoPassSuccess,
       'EMERGENCY_SUCCESS' => PagoNfcStatus.emergencySuccess,
       'PAID_WITH_EMERGENCY' => PagoNfcStatus.successWithEmergency,
       'REJECTED' => PagoNfcStatus.rejected,
@@ -45,6 +47,7 @@ class PagoNfcResult {
 
   bool get isApproved =>
       status == PagoNfcStatus.success ||
+      status == PagoNfcStatus.ecoPassSuccess ||
       status == PagoNfcStatus.emergencySuccess ||
       status == PagoNfcStatus.successWithEmergency;
 

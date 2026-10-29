@@ -54,7 +54,7 @@ abstract final class AppTheme {
       iconTheme: const IconThemeData(color: AppColors.textSecondary),
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.surfaceWhite,
+        backgroundColor: AppColors.topBarBackground,
         foregroundColor: AppColors.text,
         elevation: 0,
         scrolledUnderElevation: 0,

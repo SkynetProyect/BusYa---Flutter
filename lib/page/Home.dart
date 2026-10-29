@@ -13,6 +13,14 @@ import 'package:flutter_application_1/page/perfil/Perfil.dart';
 import 'package:flutter_application_1/page/rutas/Rutas.dart';
 import 'package:flutter_application_1/widget/buttombar/BarraNavegacion.dart';
 import 'package:flutter_application_1/page/historial/Historial.dart';
+import 'package:flutter_application_1/features/voice/application/voice_controller.dart';
+import 'package:flutter_application_1/features/voice/domain/voice_intent.dart';
+import 'package:flutter_application_1/features/voice/presentation/voice_button.dart';
+import 'package:flutter_application_1/features/voice/presentation/voice_assistant_panel.dart';
+import 'package:flutter_application_1/features/voice/presentation/voice_layout.dart';
+import 'package:flutter_application_1/features/voice/voice_module.dart';
+import 'package:flutter_application_1/features/voice/application/period_range.dart';
+import 'package:flutter_application_1/widget/gasto/ResumenGastoSheet.dart';
 
 class Application extends StatefulWidget {
   const Application({super.key});
@@ -27,6 +35,7 @@ class _Home extends State<Application> {
   var _selectedIndex = _indiceMapa;
   String? _idCliente;
   StreamSubscription<AuthState>? _authSubscription;
+  late final VoiceController _voiceController;
 
   @override
   void initState() {
@@ -37,6 +46,8 @@ class _Home extends State<Application> {
       if (mounted) setState(() => _selectedIndex = _indiceMapa);
     };
 
+    _voiceController = createVoiceController();
+    unawaited(_voiceController.initialize());
     _idCliente = supabase.auth.currentUser?.id;
     _authSubscription = supabase.auth.onAuthStateChange.listen((authState) {
       if (!mounted) return;
@@ -52,7 +63,74 @@ class _Home extends State<Application> {
   void dispose() {
     MapaRutaRequest.irAlMapa = null;
     _authSubscription?.cancel();
+    _voiceController.dispose();
     super.dispose();
+  }
+
+  bool get _hayUsuario => (_idCliente ?? '').isNotEmpty;
+
+  void _avisar(String mensaje) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(mensaje)));
+  }
+
+  void _onVoiceIntent(VoiceIntent intent) {
+    if (!mounted) return;
+
+    switch (intent) {
+      case NavigateIntent(destination: final destination):
+        final requiereUsuario =
+            destination == VoiceDestination.pagar ||
+            destination == VoiceDestination.tarjetas ||
+            destination == VoiceDestination.historial;
+        if (requiereUsuario && !_hayUsuario) {
+          _avisar('Inicia sesión primero.');
+          return;
+        }
+
+        final index = switch (destination) {
+          VoiceDestination.inicio => 0,
+          VoiceDestination.pagar => 1,
+          VoiceDestination.tarjetas => 1,
+          VoiceDestination.historial => 2,
+          VoiceDestination.rutas => 3,
+          VoiceDestination.perfil => 4,
+        };
+        setState(() => _selectedIndex = index);
+
+      case AnswerIntent(message: final message):
+        _avisar(message);
+
+      case UnknownIntent():
+        _avisar('No te entendí. Prueba con "pagar pasaje" o "ver historial".');
+
+      case SpendingQueryIntent(period: final period):
+        _mostrarResumenGasto(period);
+    }
+  }
+
+  void _mostrarResumenGasto(SpendingPeriod period) {
+    if (!_hayUsuario) {
+      _avisar('Inicia sesión primero.');
+      return;
+    }
+
+    final rango = rangeForPeriod(period, DateTime.now());
+    unawaited(
+      ResumenGastoSheet.show(
+        context,
+        titulo: rango.titulo,
+        desde: rango.desde,
+        hasta: rango.hasta,
+        onVerHistorial: () {
+          if (mounted) setState(() => _selectedIndex = 2);
+        },
+        onLoaded: (resumen) {
+          // TODO(voz): decir resumen.textoHablado(rango.frase) con el speaker.
+        },
+      ),
+    );
   }
 
   @override
@@ -60,9 +138,11 @@ class _Home extends State<Application> {
     final theme = Theme.of(context);
     final id = _idCliente ?? '';
     final hayUsuario = id.isNotEmpty;
+    final bottomNavigationOffset =
+        kVoiceNavigationHeight + MediaQuery.of(context).padding.bottom;
 
     final List<Widget> pantalla = [
-      Inicio(),
+      Inicio(voiceController: _voiceController),
       hayUsuario
           ? Pagos(key: ValueKey('pagos-$id'), idCliente: id)
           : const SizedBox.shrink(),
@@ -94,6 +174,26 @@ class _Home extends State<Application> {
               ),
             ),
           ),
+
+          // 3. Panel del asistente (solo fuera de la pestaña Pagos)
+          if (_selectedIndex != 1)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: bottomNavigationOffset,
+              child: VoiceAssistantPanel(controller: _voiceController),
+            ),
+
+          // 4. Botón de voz (solo fuera de la pestaña Pagos)
+          if (_selectedIndex != 1)
+            Positioned(
+              right: kVoiceHorizontalInset,
+              bottom: bottomNavigationOffset + kVoiceBottomInset,
+              child: VoiceButton(
+                controller: _voiceController,
+                onIntent: _onVoiceIntent,
+              ),
+            ),
         ],
       ),
     );

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/features/voice/presentation/voice_layout.dart';
 import 'package:flutter_application_1/widget/buttombar/IconoInicio.dart'
     show IconoInicio;
 import 'package:flutter_application_1/widget/buttombar/IconoPago.dart'
@@ -52,7 +53,7 @@ class BarraNavegacion extends StatelessWidget {
             ),
           ),
           child: SizedBox(
-            height: 60,
+            height: kVoiceNavigationHeight,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

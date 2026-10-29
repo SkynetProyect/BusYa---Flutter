@@ -15,9 +15,17 @@ import 'PasajeEmergenciaState.dart';
 import '../model/NfcUiState.dart';
 
 class NfcPaymentController extends ChangeNotifier {
-  NfcPaymentController({required this.idCliente, this.onPagoCompletado});
+  NfcPaymentController({
+    required this.idCliente,
+    this.onPagoCompletado,
+    this.onPasajeEcoGanado,
+  });
   final String idCliente;
   final VoidCallback? onPagoCompletado; // refrescar saldos del carrusel
+
+  /// Se llama cuando este viaje completó los 30 puntos Eco y se ganó un
+  /// pasaje gratis. La pantalla decide cómo celebrarlo (EcoCelebraciones).
+  final VoidCallback? onPasajeEcoGanado;
 
   final _payments = PaymentProcessorService();
   final _puntos = PuntosService();
@@ -92,8 +100,9 @@ class NfcPaymentController extends ChangeNotifier {
   }
 
   Future<void> _onTag(Map<String, dynamic> dataNfc) async {
-    if (_busy)
+    if (_busy) {
       return; // anti doble cobro: ignora lecturas mientras procesa y durante el enfriamiento
+    }
     final card = tarjeta;
     if (card == null) {
       _mostrar(NfcUiState.error, msg: 'Selecciona una tarjeta para pagar');
@@ -116,6 +125,12 @@ class NfcPaymentController extends ChangeNotifier {
         HapticFeedback.mediumImpact();
         _mostrar(NfcUiState.success, m: r.montoCobrado ?? tarifa);
         unawaited(_postPago(dataNfc));
+      case PagoNfcStatus.ecoPassSuccess:
+        // Viaje gratis con pasaje Eco: no se cobra y NO suma punto
+        // (así no se encadenan pasajes gratis).
+        HapticFeedback.mediumImpact();
+        _mostrar(NfcUiState.ecoPass, m: 0);
+        unawaited(_postPago(dataNfc, sumarPunto: false));
       case PagoNfcStatus.emergencySuccess:
         HapticFeedback.mediumImpact();
         _mostrar(NfcUiState.emergency, m: tarifa);
@@ -132,9 +147,20 @@ class NfcPaymentController extends ChangeNotifier {
     }
   }
 
-  Future<void> _postPago(Map<String, dynamic> dataNfc) async {
+  Future<void> _postPago(
+    Map<String, dynamic> dataNfc, {
+    bool sumarPunto = true,
+  }) async {
     try {
-      await _puntos.sumarPuntoPorViaje();
+      if (sumarPunto) {
+        final res = await _puntos.sumarPuntoPorViaje();
+        if (res?.pasajeGanado == true && !_disposed) {
+          onPasajeEcoGanado?.call();
+        }
+      } else {
+        // Se gastó un pasaje Eco: refresca el contador del top bar.
+        await _puntos.obtenerEstado();
+      }
     } catch (_) {}
     try {
       await _rutas.create(
@@ -158,6 +184,7 @@ class NfcPaymentController extends ChangeNotifier {
         _busy = false;
         notifyListeners();
         if (s == NfcUiState.success ||
+            s == NfcUiState.ecoPass ||
             s == NfcUiState.emergency ||
             s == NfcUiState.successWithDebt) {
           onPagoCompletado?.call();

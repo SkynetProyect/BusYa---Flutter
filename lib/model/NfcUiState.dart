@@ -7,4 +7,5 @@ enum NfcUiState {
   successWithDebt, // pagó pasaje actual + pasaje de emergencia
   rejected, // gastaste tu pasaje de emergencia
   error, // red, NFC apagado, tag inválido
+  ecoPass,
 }
