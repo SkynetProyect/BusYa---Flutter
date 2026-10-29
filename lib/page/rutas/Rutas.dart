@@ -5,6 +5,8 @@ import 'package:flutter_application_1/model/Empresa.dart' show Empresa;
 import 'package:flutter_application_1/model/Ruta.dart' show Ruta;
 import 'package:flutter_application_1/model/RutaFavorita.dart'
     show RutaFavorita;
+import 'package:flutter_application_1/page/inicio/componentes/MapaRutaRequest.dart';
+
 import 'package:flutter_application_1/widget/app_top_bar.dart';
 import 'package:flutter_application_1/service/rest/empresa/EmpresaService.dart'
     show EmpresaService;
@@ -15,6 +17,7 @@ import 'package:flutter_application_1/service/rest/ruta_favorita/RutaFavoritaSer
 
 /// Pantalla de rutas dividida en dos listas:
 /// - Arriba: las rutas favoritas del usuario (tabla rutas_favoritas).
+///   Al tocar una, se abre el mapa con esa ruta.
 /// - Abajo: todas las rutas, cada una con una estrella para marcarla
 ///   o quitarla de favoritas.
 class Rutas extends StatefulWidget {
@@ -188,6 +191,11 @@ class _RutasState extends State<Rutas> {
     }
   }
 
+  // ---------- ABRIR EN EL MAPA ----------
+
+  /// Deja la ruta pedida en el puente y cambia a la pestaña del mapa.
+  void _abrirEnMapa(Ruta ruta) => MapaRutaRequest.abrir(ruta);
+
   // ---------- LISTAS DERIVADAS DEL ESTADO ----------
 
   List<Ruta> get _rutasFavoritas {
@@ -295,6 +303,8 @@ class _RutasState extends State<Rutas> {
                 : _buildListaRutas(
                     favoritas,
                     padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                    // Solo las favoritas abren el mapa al tocarlas.
+                    onRutaTap: _abrirEnMapa,
                   ),
           ),
         ],
@@ -367,16 +377,21 @@ class _RutasState extends State<Rutas> {
     );
   }
 
-  Widget _buildListaRutas(List<Ruta> rutas, {required EdgeInsets padding}) {
+  Widget _buildListaRutas(
+    List<Ruta> rutas, {
+    required EdgeInsets padding,
+    void Function(Ruta ruta)? onRutaTap,
+  }) {
     return ListView.separated(
       padding: padding,
       itemCount: rutas.length,
       separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) => _buildTarjeta(rutas[index]),
+      itemBuilder: (context, index) =>
+          _buildTarjeta(rutas[index], onTap: onRutaTap),
     );
   }
 
-  Widget _buildTarjeta(Ruta ruta) {
+  Widget _buildTarjeta(Ruta ruta, {void Function(Ruta ruta)? onTap}) {
     final idEmpresa = ruta.idEmpresa;
 
     return _RutaCard(
@@ -386,9 +401,7 @@ class _RutasState extends State<Rutas> {
       nombreEmpresa: idEmpresa != null ? _empresasPorId[idEmpresa] : null,
       precioTexto: _precioFormateado(ruta.precioPasaje),
       trailing: _buildBotonFavorita(ruta),
-      onTap: () {
-        // TODO: navegar a detalle / mapa de la ruta
-      },
+      onTap: onTap == null ? null : () => onTap(ruta),
     );
   }
 
@@ -460,7 +473,7 @@ class _RutaCard extends StatelessWidget {
   final String? nombreEmpresa;
   final String precioTexto;
   final Widget? trailing;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _RutaCard({
     required this.ruta,
@@ -468,7 +481,7 @@ class _RutaCard extends StatelessWidget {
     required this.codigo,
     required this.nombreEmpresa,
     required this.precioTexto,
-    required this.onTap,
+    this.onTap,
     this.trailing,
   });
 

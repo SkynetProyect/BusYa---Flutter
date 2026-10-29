@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/core/supabase_client.dart';
+import 'package:flutter_application_1/page/inicio/componentes/MapaRutaRequest.dart';
 import 'package:flutter_application_1/service/PasajeEmergenciaState.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:flutter_application_1/page/inicio/Inicio.dart';
+
 import 'package:flutter_application_1/page/pagos/Pagos.dart';
 import 'package:flutter_application_1/page/perfil/Perfil.dart';
 import 'package:flutter_application_1/page/rutas/Rutas.dart';
@@ -19,13 +21,22 @@ class Application extends StatefulWidget {
 }
 
 class _Home extends State<Application> {
-  var _selectedIndex = 0;
+  /// Índice de la pestaña del mapa (Inicio) en la lista de pantallas.
+  static const int _indiceMapa = 0;
+
+  var _selectedIndex = _indiceMapa;
   String? _idCliente;
   StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
     super.initState();
+
+    // Rutas pide abrir una ruta en el mapa: cambiamos a la pestaña Inicio.
+    MapaRutaRequest.irAlMapa = () {
+      if (mounted) setState(() => _selectedIndex = _indiceMapa);
+    };
+
     _idCliente = supabase.auth.currentUser?.id;
     _authSubscription = supabase.auth.onAuthStateChange.listen((authState) {
       if (!mounted) return;
@@ -39,6 +50,7 @@ class _Home extends State<Application> {
 
   @override
   void dispose() {
+    MapaRutaRequest.irAlMapa = null;
     _authSubscription?.cancel();
     super.dispose();
   }

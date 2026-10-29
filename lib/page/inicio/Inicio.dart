@@ -9,11 +9,13 @@ import 'package:flutter_application_1/page/inicio/alerts/BusProximityAlertServic
 import 'package:flutter_application_1/page/inicio/componentes/BusInfoSheet.dart'
     show BusInfoSheet;
 import 'package:flutter_application_1/page/inicio/componentes/BusMarkerIcon.dart';
+import 'package:flutter_application_1/page/inicio/componentes/MapaRutaRequest.dart';
 import 'package:flutter_application_1/page/inicio/componentes/OccupancyFormater.dart'
     show OccupancyFormatter;
 import 'package:flutter_application_1/page/inicio/componentes/PolylineDecoder.dart'
     show PolylineDecoder;
 import 'package:flutter_application_1/page/inicio/componentes/RouteSelectorBar.dart';
+
 import 'package:flutter_application_1/widget/app_top_bar.dart';
 import 'package:flutter_application_1/page/inicio/componentes/UserLocationMaker.dart'
     show UserLocationMarker;
@@ -37,6 +39,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// Pantalla principal: mapa con ruta seleccionada, buses en tiempo real
 /// (Supabase Realtime Broadcast), ubicación/orientación del usuario y
 /// alertas de proximidad.
+///
+/// También atiende solicitudes de otras pantallas (por ejemplo, las rutas
+/// favoritas) a través de [MapaRutaRequest].
 class Inicio extends StatefulWidget {
   const Inicio({super.key});
 
@@ -92,6 +97,7 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    MapaRutaRequest.pending.addListener(_atenderSolicitudRuta);
     _cargarSelectores();
     _cargarUbicacion();
     _iniciarBrujula();
@@ -99,6 +105,7 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    MapaRutaRequest.pending.removeListener(_atenderSolicitudRuta);
     WidgetsBinding.instance.removeObserver(this);
     _renderTimer?.cancel();
     unawaited(_cancelarSuscripcionBuses());
@@ -222,11 +229,18 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() => _selectorError = error.toString());
     } finally {
-      if (mounted) setState(() => _loadingSelectores = false);
+      if (mounted) {
+        setState(() => _loadingSelectores = false);
+        // Si otra pantalla pidió una ruta mientras cargaba, atenderla ahora.
+        unawaited(_atenderSolicitudRuta());
+      }
     }
   }
 
   Future<void> _restaurarSeleccion() async {
+    // Si otra pantalla pidió una ruta, esa tiene prioridad sobre la guardada.
+    if (MapaRutaRequest.pending.value != null) return;
+
     try {
       final saved = await _selectionStorage.load();
       debugPrint('[SELECTION] restaurando: $saved');
@@ -255,6 +269,33 @@ class _InicioState extends State<Inicio> with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('[SELECTION] error restaurando: $e');
     }
+  }
+
+  /// Abre en el mapa la ruta pedida desde otra pantalla (p. ej. favoritas).
+  Future<void> _atenderSolicitudRuta() async {
+    final pedida = MapaRutaRequest.pending.value;
+    if (pedida == null || !mounted) return;
+    // Si aún cargan las empresas, no se consume: se reintenta al terminar.
+    if (_loadingSelectores) return;
+
+    MapaRutaRequest.pending.value = null; // consumir la solicitud
+
+    final empresa = _empresas
+        .where((e) => e.id == pedida.idEmpresa)
+        .firstOrNull;
+    if (empresa == null) return;
+
+    // Cambiar de empresa solo si hace falta.
+    if (_empresaSeleccionada?.id != empresa.id) {
+      await _seleccionarEmpresa(empresa);
+    }
+    if (!mounted) return;
+
+    // Usar la instancia de la lista para que el Dropdown la reconozca.
+    final ruta = _rutasDeEmpresa.where((r) => r.id == pedida.id).firstOrNull;
+    if (ruta == null) return;
+
+    await _seleccionarRuta(ruta);
   }
 
   Future<void> _guardarSeleccion() => _selectionStorage.save(
